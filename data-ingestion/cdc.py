@@ -1,49 +1,51 @@
-import threading
+import json
+import logging
 
-from bson.json_util import dumps
-from pymongo.errors import PyMongoError
+from bson import json_util
+from kafka import KafkaProducer
 
-from db.mongo import connection
+from db.mongo import MongoDatabaseConnector
+from kafka_stream.utils import json_serializer
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+producer = KafkaProducer(
+    bootstrap_servers=['localhost:9093'],
+    value_serializer=json_serializer
+)
 
 
-def watch_collection(collection_name, db):
-    pipeline = [{'$match': {'operationType': {'$in': ['insert', 'update', 'delete']}}}]
-
+def stream_process():
     try:
-        collection = db[collection_name]
-        with collection.watch(pipeline) as stream:
-            print(f"Watching collection: {collection_name}")
-            for change in stream:
-                print(f"Change in {collection_name}:")
-                print(dumps(change, indent=2))
-                # Here you can add logic to process the change
-                # For example, you could send it to another system or update a cache
-    except PyMongoError as e:
-        print(f"Error watching {collection_name}: {e}")
+        # Setup MongoDB connection
+        client = MongoDatabaseConnector()
+        db = client["scrabble"]
+        logging.info("Connected to MongoDB.")
+
+        # Watch changes in a specific collection
+        changes = db.watch([{"$match": {"operationType": {"$in": ["insert"]}}}])
+        for change in changes:
+            data_type = change["ns"]["coll"]
+            entry_id = str(change["fullDocument"]["_id"])  # Convert ObjectId to string
+            change["fullDocument"].pop("_id")
+            change["fullDocument"]["type"] = data_type
+            change["fullDocument"]["entry_id"] = entry_id
+
+            # Use json_util to serialize the document
+            data = json.dumps(change["fullDocument"], default=json_util.default)
+            logging.info(f"Change detected and serialized: {data}")
+
+            # Send data to rabbitmq
+            logging.info("Data published to Kafka.")
+            producer.send('outgoing-data', value=data)
 
 
-def watch_database():
-    try:
-        db = connection.get_database("scrabble")
-
-        # Get all collection names
-        collection_names = db.list_collection_names()
-
-        # Create a thread for each collection
-        threads = []
-        for collection_name in collection_names:
-            thread = threading.Thread(target=watch_collection, args=(collection_name, db))
-            threads.append(thread)
-            thread.start()
-
-        # Wait for all threads to complete
-        for thread in threads:
-            thread.join()
     except Exception as e:
-        print(f"Error in watch_database: {e}")
-    finally:
-        connection.close()
+        logging.error(f"An error occurred: {e}")
 
 
 if __name__ == "__main__":
-    watch_database()
+    stream_process()
