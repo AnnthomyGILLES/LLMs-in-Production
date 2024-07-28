@@ -8,6 +8,8 @@ services:
       - "zookeeper-volume:/bitnami"
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - app-network
 
   kafka:
     restart: always
@@ -26,6 +28,8 @@ services:
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
     depends_on:
       - zookeeper
+    networks:
+      - app-network
 
   mongodb:
     image: mongo:latest
@@ -41,6 +45,8 @@ services:
       retries: 30
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - app-network
 
   data-ingestion:
     build:
@@ -58,8 +64,14 @@ services:
       - MONGO_DB=llmtoprod_db
       - MONGO_COLLECTION=kafka_messages
       - API_URL=https://api.example.com/data
+    networks:
+      - app-network
 
 volumes:
   mongodb_data:
   kafka-volume:
   zookeeper-volume:
+
+networks:
+  app-network:
+    driver: bridge
