@@ -1,9 +1,9 @@
+import json
 import logging
 import time
 
 from faker import Faker
-
-from kafka_producer import KafkaProducerWrapper
+from kafka import KafkaProducer
 
 
 class FakeAPIStreamer:
@@ -37,7 +37,8 @@ class FakeAPIStreamer:
         while True:
             try:
                 data = self.generate_fake_data()
-                self.kafka_producer.producer.send(self.kafka_topic, value=data)
+                self.kafka_producer.send(self.kafka_topic, value=data)
+                self.kafka_producer.flush()
                 logging.info(f"Sent data to Kafka: {data}")
             except Exception as e:
                 logging.error(f"Error streaming data to Kafka: {str(e)}")
@@ -47,6 +48,9 @@ class FakeAPIStreamer:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    producer = KafkaProducerWrapper(['localhost:9093'])
+    producer = KafkaProducer(
+        bootstrap_servers=['localhost:9093'],
+        value_serializer=lambda v: json.dumps(v).encode('utf-8')
+    )
     streamer = FakeAPIStreamer(producer, 'my-topic')
     streamer.stream_data()

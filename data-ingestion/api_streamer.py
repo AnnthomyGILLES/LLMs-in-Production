@@ -1,9 +1,9 @@
+import json
 import logging
 import time
 
 import requests
-
-from kafka_producer import KafkaProducerWrapper
+from kafka import KafkaProducer
 
 
 class APIStreamer:
@@ -36,6 +36,9 @@ class APIStreamer:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    producer = KafkaProducerWrapper(['localhost:9092'])
+    producer = KafkaProducer(
+        bootstrap_servers=['localhost:9093'],
+        value_serializer=lambda v: json.dumps(v).encode('utf-8')
+    )
     streamer = APIStreamer('https://api.example.com/data', producer, 'my-topic')
     streamer.stream_data()
