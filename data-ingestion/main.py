@@ -11,7 +11,7 @@ def main():
     kafka_servers = os.getenv('KAFKA_SERVERS', 'localhost:9093').split(',')
     kafka_topic = os.getenv('KAFKA_TOPIC', 'new-incoming-data')
     mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
-    mongo_db = os.getenv('MONGO_DB', 'scrabble')
+    mongo_db = os.getenv('MONGO_DB', 'llmtoprod_db')
     mongo_collection = os.getenv('MONGO_COLLECTION', 'kafka_messages')
 
     consumer = KafkaConsumerWrapper(kafka_servers, kafka_topic)

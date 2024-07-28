@@ -19,7 +19,7 @@ consumer = KafkaConsumer(
 )
 
 client = MongoDatabaseConnector()
-db = client["scrabble"]
+db = client["llmtoprod_db"]
 collection = db['kafka_messages']
 
 if __name__ == '__main__':

@@ -1,14 +1,14 @@
 import uuid
 from typing import List, Optional
 
-from errors import ImproperlyConfigured
 from pydantic import UUID4, BaseModel, ConfigDict, Field
 from pymongo import errors
-from utils import get_logger
 
 from db.mongo import connection
+from errors import ImproperlyConfigured
+from utils import get_logger
 
-_database = connection.get_database("scrabble")
+_database = connection.get_database("llmtoprod_db")
 
 logger = get_logger(__name__)
 

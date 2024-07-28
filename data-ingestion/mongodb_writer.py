@@ -26,6 +26,6 @@ class MongoDBWriter:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    writer = MongoDBWriter('mongodb://localhost:27017', 'scrabble', 'kafka_messages')
+    writer = MongoDBWriter('mongodb://localhost:27017', 'llmtoprod_db', 'kafka_messages')
     writer.write({"test": "data"})
     writer.close()

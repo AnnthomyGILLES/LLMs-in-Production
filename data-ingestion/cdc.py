@@ -22,7 +22,7 @@ def stream_process():
     try:
         # Setup MongoDB connection
         client = MongoDatabaseConnector()
-        db = client["scrabble"]
+        db = client["llmtoprod_db"]
         logging.info("Connected to MongoDB.")
 
         # Watch changes in a specific collection
