@@ -36,6 +36,6 @@ class APIStreamer:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    producer = KafkaProducerWrapper(['localhost:9093'])
-    streamer = APIStreamer('https://api.example.com/data', producer, 'incoming-data')
+    producer = KafkaProducerWrapper(['localhost:9092'])
+    streamer = APIStreamer('https://api.example.com/data', producer, 'my-topic')
     streamer.stream_data()
