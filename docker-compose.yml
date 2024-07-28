@@ -30,6 +30,11 @@ services:
       - zookeeper
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD", "kafka-topics.sh", "--list", "--bootstrap-server", "localhost:9092" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   mongodb:
     image: mongo:latest
@@ -37,7 +42,7 @@ services:
     ports:
       - 27017:27017
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:172.20.0.1"
     healthcheck:
       test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'host.docker.internal:27017'}]}) }" | mongosh --port 27017 --quiet
       interval: 5s
@@ -53,8 +58,10 @@ services:
       context: ./data-ingestion
       dockerfile: Dockerfile
     depends_on:
-      - kafka
-      - mongodb
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
     ports:
       - 8080:8080
     environment:
