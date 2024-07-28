@@ -7,7 +7,7 @@ from kafka import KafkaConsumer
 class KafkaConsumerWrapper:
     def __init__(self, bootstrap_servers=None, topic='incoming-data', group_id='my-group'):
         if bootstrap_servers is None:
-            bootstrap_servers = ['localhost:9093']
+            bootstrap_servers = ['kafa:9092']
         self.consumer = KafkaConsumer(
             topic,
             bootstrap_servers=bootstrap_servers,
