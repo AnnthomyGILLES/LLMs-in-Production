@@ -28,13 +28,16 @@ class FakeAPIStreamer:
         }
         return fake_data
 
-    def stream_data(self, interval=1):
+    def stream_data(self, interval=1, max_iterations=None):
         """
-        Streams fake data and sends it to Kafka.
+        Streams fake data and sends it to Kafka with a limit on the number of iterations.
 
         :param interval: Time interval between data generations (in seconds)
+        :param max_iterations: Maximum number of iterations to run; if None, runs indefinitely
         """
-        while True:
+        iteration_count = 0
+
+        while max_iterations is None or iteration_count < max_iterations:
             try:
                 data = self.generate_fake_data()
                 self.kafka_producer.send(self.kafka_topic, value=data)
@@ -44,6 +47,9 @@ class FakeAPIStreamer:
                 logging.error(f"Error streaming data to Kafka: {str(e)}")
 
             time.sleep(interval)
+            iteration_count += 1
+
+        logging.info("Finished streaming data.")
 
 
 if __name__ == "__main__":
