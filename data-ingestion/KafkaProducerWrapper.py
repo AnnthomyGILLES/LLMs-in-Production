@@ -1,39 +1,57 @@
 import json
 import logging
+from typing import Any, Dict
 
 from kafka import KafkaProducer
+from kafka.errors import KafkaError
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
-class KafkaMessageProducer:
-    def __init__(self, bootstrap_servers, topic):
+class KafkaProducerWrapper:
+    """A Kafka producer for sending messages to a specified topic."""
+
+    def __init__(self, bootstrap_servers: list, topic: str, **kwargs):
         self.topic = topic
         self.producer = KafkaProducer(
             bootstrap_servers=bootstrap_servers,
-            value_serializer=lambda v: json.dumps(v).encode('utf-8')
+            value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+            **kwargs
         )
         logging.info(f"Kafka producer initialized for topic: {self.topic}")
 
-    def send_message(self, message):
-        future = self.producer.send(self.topic, message)
-        try:
-            record_metadata = future.get(timeout=10)
-            logging.info(
-                f"Message sent successfully to {record_metadata.topic} [{record_metadata.partition}] @ {record_metadata.offset}")
-            self.producer.flush()
-            logging.info("Producer flushed successfully")
-        except Exception as e:
-            logging.error(f"Failed to send message: {str(e)}", exc_info=True)
+    def send_message(self, message: Dict[str, Any], retries: int = 3) -> bool:
+        for attempt in range(retries):
+            try:
+                self.producer.send(self.topic, message)
+                self.producer.flush()
+                logging.info("Producer flushed successfully")
+                return True
+            except KafkaError as e:
+                logging.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+                if attempt == retries - 1:
+                    logging.error(f"Failed to send message after {retries} attempts", exc_info=True)
+                    return False
+        return False
 
     def close(self):
+        """Close the Kafka producer."""
         self.producer.flush()
         self.producer.close()
         logging.info("Kafka producer closed")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
 
 if __name__ == "__main__":
-    producer = KafkaMessageProducer(['localhost:9093'], 'your_topic_name')
-    try:
+    with KafkaProducerWrapper(['localhost:9093'], 'your_topic_name') as producer:
         message = {"key": "value"}
-        producer.send_message(message)
-    finally:
-        producer.close()
+        success = producer.send_message(message)
+        if success:
+            print("Message sent successfully")
+        else:
+            print("Failed to send message")
