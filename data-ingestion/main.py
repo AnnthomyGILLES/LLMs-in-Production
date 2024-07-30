@@ -1,12 +1,10 @@
-import json
 import logging
 import os
 import threading
 
-from kafka import KafkaProducer
-
 from fake_api_streamer import FakeAPIStreamer
 from kafka_consumer import KafkaConsumerWrapper
+from kafka_producer import KafkaProducerWrapper
 from mongodb_writer import MongoDBWriter
 
 
@@ -28,12 +26,9 @@ def main():
     mongo_db = os.getenv('MONGO_DB', 'llmtoprod_db')
     mongo_collection = os.getenv('MONGO_COLLECTION', 'kafka_messages')
 
-    producer = KafkaProducer(
-        bootstrap_servers=bootstrap_servers,
-        value_serializer=lambda v: json.dumps(v).encode('utf-8')
-    )
+    producer = KafkaProducerWrapper(bootstrap_servers=bootstrap_servers, topic=kafka_topic)
     logging.info(f"Kafka producer initialized. Servers: {bootstrap_servers}")
-    
+
     consumer = KafkaConsumerWrapper(bootstrap_servers, kafka_topic)
     writer = MongoDBWriter(mongo_uri, mongo_db, mongo_collection)
     api_streamer = FakeAPIStreamer(producer, kafka_topic)
