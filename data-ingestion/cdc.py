@@ -1,23 +1,18 @@
 import json
 import logging
 
-import pymongo
 from bson import json_util
-from kafka import KafkaProducer
+from pymongo.errors import PyMongoError
 
 from mongodb_writer import MongoDBWriter
 
 
 class ChangeDataCapture:
-    def __init__(self, mongo_client, kafka_servers, kafka_topic):
+    def __init__(self, mongo_client, kafka_producer):
         self.mongo_client = mongo_client
-        self.kafka_producer = KafkaProducer(
-            bootstrap_servers=kafka_servers,
-            value_serializer=lambda v: json.dumps(v).encode('utf-8')
-        )
-        self.kafka_topic = kafka_topic
-        logging.info(f"CDC initialized for MongoDB collection: {database}.{collection}")
-        logging.info(f"CDC will publish changes to Kafka topic: {kafka_topic}")
+        self.kafka_producer = kafka_producer
+        self.kafka_topic = kafka_producer.topic
+        logging.info(f"CDC will publish changes to Kafka topic: {self.kafka_topic}")
 
     def start_watching(self):
         logging.info("Starting to watch for changes...")
@@ -25,7 +20,7 @@ class ChangeDataCapture:
             with self.mongo_client.collection.watch() as stream:
                 for change in stream:
                     self.process_change(change)
-        except pymongo.errors.PyMongoError as e:
+        except PyMongoError as e:
             logging.error(f"Error watching MongoDB changes: {str(e)}")
 
     def process_change(self, change):
@@ -39,20 +34,15 @@ class ChangeDataCapture:
             full_document = change.get('fullDocument')
             data = json.dumps(full_document, default=json_util.default)
             logging.info(f"Change detected and serialized: {data}")
-
-            logging.info("Data published to Kafka.")
             self.send_to_kafka(data)
-
             logging.info(f"Processed {operation} operation for document: {entry_id}")
 
-    # TODO Replace with a dedicated KafkaProducer class
     def send_to_kafka(self, change_data):
-        try:
-            self.kafka_producer.send(self.kafka_topic, change_data)
-            self.kafka_producer.flush()
+        success = self.kafka_producer.send_message(change_data)
+        if success:
             logging.info(f"Sent change data to Kafka topic: {self.kafka_topic}")
-        except Exception as e:
-            logging.error(f"Error sending to Kafka: {str(e)}")
+        else:
+            logging.error("Failed to send change data to Kafka")
 
     def close(self):
         self.mongo_client.close()
@@ -61,17 +51,16 @@ class ChangeDataCapture:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    from kafka_producer import KafkaProducerWrapper
 
-    mongo_uri = "mongodb://localhost:27017"
-    database = "llmtoprod_db"
-    collection = "kafka_messages"
-    kafka_servers = ['localhost:9093']
+    bootstrap_servers = ['localhost:9093']
     kafka_topic = 'outgoing-data'
-
-    writer = MongoDBWriter(mongo_uri, database, collection)
-    cdc = ChangeDataCapture(writer, kafka_servers, kafka_topic)
-
+    mongo_uri = "mongodb://localhost:27017"
+    mongo_db = "llmtoprod_db"
+    mongo_collection = "kafka_messages"
+    mongo_client = MongoDBWriter(mongo_uri, mongo_db, mongo_collection)
+    kafka_producer = KafkaProducerWrapper(bootstrap_servers, kafka_topic)
+    cdc = ChangeDataCapture(mongo_client, kafka_producer)
     try:
         cdc.start_watching()
     except KeyboardInterrupt:
