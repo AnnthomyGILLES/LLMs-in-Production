@@ -40,8 +40,8 @@ class FakeAPIStreamer:
         while max_iterations is None or iteration_count < max_iterations:
             try:
                 data = self.generate_fake_data()
-                self.kafka_producer.send(self.kafka_topic, value=data)
-                self.kafka_producer.flush()
+                self.kafka_producer.producer.send(self.kafka_topic, value=data)
+                self.kafka_producer.producer.flush()
                 logging.info(f"Sent data to Kafka: {data}")
             except Exception as e:
                 logging.error(f"Error streaming data to Kafka: {str(e)}")
