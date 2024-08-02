@@ -17,6 +17,18 @@ structlog = "24.1.0"
 basecrawler = "^0.1.20"
 faker = "^26.0.0"
 kafka-python = "^2.0.2"
+bytewax = "^0.20.1"
+pyspark = "^3.5.1"
+ruff = "^0.5.5"
+line-profiler-pycharm = "^1.1.0"
+langchain = "^0.2.12"
+instructorembedding = "^1.0.1"
+sentence-transformers = "^3.0.1"
+langchain-community = "^0.2.10"
+openai = "^1.38.0"
+tiktoken = "^0.7.0"
+langchain-openai = "^0.1.20"
+qdrant-client = "^1.10.1"
 
 
 [build-system]
