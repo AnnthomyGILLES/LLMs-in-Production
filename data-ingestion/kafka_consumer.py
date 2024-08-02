@@ -42,7 +42,12 @@ class KafkaConsumerWrapper:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    consumer = KafkaConsumerWrapper()
+    bootstrap_servers = ['localhost:9092']
+    kafka_topic = 'your_topic_name'
+
+    logging.info(f"Kafka producer initialized. Servers: {bootstrap_servers}")
+
+    consumer = KafkaConsumerWrapper(bootstrap_servers, kafka_topic)
     for msg in consumer.consume():
         print(msg)
     consumer.close()

@@ -48,7 +48,7 @@ class KafkaProducerWrapper:
 
 
 if __name__ == "__main__":
-    with KafkaProducerWrapper(['localhost:9093'], 'your_topic_name') as producer:
+    with KafkaProducerWrapper(['localhost:9092'], 'your_topic_name') as producer:
         message = {"key": "value"}
         success = producer.send_message(message)
         if success:
