@@ -1,20 +1,27 @@
 services:
   redpanda:
-    image: docker.redpanda.com/redpandadata/redpanda:latest
+    image: redpandadata/redpanda:latest
     command:
       - redpanda start
-      - --smp 1
+      - --smp 2
       - --overprovisioned
       - --node-id 0
-      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
-      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9092
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9093
+      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9093
+      - --memory 4G
     ports:
-      - "9092:9092"
+      - "9093:9093"
       - "29092:29092"
     volumes:
       - redpanda-data:/var/lib/redpanda/data
     networks:
       - kafka-network
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 3G
 
   spark:
     image: bitnami/spark:3
@@ -24,6 +31,7 @@ services:
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
+      - SPARK_WORKER_MEMORY=8g
     ports:
       - "8090:8080"
       - "7077:7077"
@@ -32,6 +40,12 @@ services:
       - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/scripts"
     networks:
       - kafka-network
+    deploy:
+      resources:
+        limits:
+          memory: 10G
+        reservations:
+          memory: 8G
 
 volumes:
   redpanda-data:
