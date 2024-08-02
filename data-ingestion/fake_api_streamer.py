@@ -1,9 +1,9 @@
-import json
 import logging
 import time
 
 from faker import Faker
-from kafka import KafkaProducer
+
+from kafka_producer import KafkaProducerWrapper
 
 
 class FakeAPIStreamer:
@@ -24,7 +24,8 @@ class FakeAPIStreamer:
             'name': self.faker.word(),
             'address': self.faker.address(),
             'email': self.faker.email(),
-            'phone_number': self.faker.phone_number()
+            'phone_number': self.faker.phone_number(),
+            "post": self.faker.text()
         }
         return fake_data
 
@@ -54,9 +55,6 @@ class FakeAPIStreamer:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    producer = KafkaProducer(
-        bootstrap_servers=['localhost:9093'],
-        value_serializer=lambda v: json.dumps(v).encode('utf-8')
-    )
+    producer = KafkaProducerWrapper(bootstrap_servers=['localhost:9093'], topic='my-topic')
     streamer = FakeAPIStreamer(producer, 'my-topic')
     streamer.stream_data()
