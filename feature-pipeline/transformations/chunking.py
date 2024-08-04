@@ -1,12 +1,9 @@
-from typing import Dict, Any
-
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import SentenceTransformersTokenTextSplitter
 
 
-def chunk_section(
-        section: Dict[str, Any], chunk_size: int = 500, chunk_overlap: int = 100
-):
-    text_splitter = RecursiveCharacterTextSplitter(
+def chunk_text(text):
+    character_splitter = RecursiveCharacterTextSplitter(
         separators=[
             "\n\n",
             "\n",
@@ -20,13 +17,22 @@ def chunk_section(
             "\u3002",  # Ideographic full stop
             "",
         ],
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
+        chunk_size=500,
+        chunk_overlap=0,
         length_function=len,
     )
-    chunks = text_splitter.create_documents(
-        texts=[section["text"]], metadatas=[{"source": section["source"]}]
+    text_split = character_splitter.split_text(text)
+
+    token_splitter = SentenceTransformersTokenTextSplitter(
+        chunk_overlap=50,
+        tokens_per_chunk=256,
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
     )
+    chunks = []
+
+    for section in text_split:
+        chunks.extend(token_splitter.split_text(section))
+
     return chunks
 
 
@@ -50,7 +56,7 @@ if __name__ == "__main__":
     # Process each section and create chunks
     all_chunks = []
     for section in sample_sections:
-        chunks = chunk_section(section, chunk_size=10, chunk_overlap=5)
+        chunks = chunk_text(section, chunk_size=10, chunk_overlap=5)
         all_chunks.extend(chunks)
 
     # Print the resulting chunks
