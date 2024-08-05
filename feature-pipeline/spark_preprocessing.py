@@ -1,8 +1,8 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col, udf
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, ArrayType, FloatType
+from pyspark.sql.functions import from_json, col, to_json, struct
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 
-from transformations.chunking import chunk_section
+from transformations.chunking import chunk_text
 from transformations.embeddings import create_embedding
 
 if __name__ == '__main__':
@@ -19,34 +19,43 @@ if __name__ == '__main__':
     # Create SparkSession
     spark = SparkSession.builder.appName("KafkaSparkStreaming").getOrCreate()
 
-    # Register UDFs
-    chunk_udf = udf(lambda text, source: [{"text": chunk.page_content, "source": chunk.metadata["source"]}
-                                          for chunk in chunk_section({"text": text, "source": source})],
-                    ArrayType(StructType([
-                        StructField("text", StringType(), True),
-                        StructField("source", StringType(), True)
-                    ])))
-
-    embedding_udf = udf(create_embedding, ArrayType(FloatType()))
-
     # Read from Kafka
     df = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "redpanda:29092").option("subscribe",
                                                                                                      "my-topic").load()
-
-    # Parse JSON data
+    # Parse JSON from Kafka
     parsed_df = df.select(from_json(col("value").cast("string"), schema).alias("data")).select("data.*")
 
-    # Apply chunking
-    chunked_df = parsed_df.withColumn("chunks", chunk_udf(col("post"), col("id").cast("string")))
+    # Apply chunking to the "post" field
+    chunked_df = parsed_df.withColumn("chunks", chunk_text(col("post")))
 
-    # Explode chunks and create embeddings
-    processed_df = chunked_df.select("id", "name", "chunks.*").withColumn("embedding", embedding_udf(col("text")))
+    # Explode the chunks and create embeddings
+    embedded_df = chunked_df.selectExpr("id", "name", "address", "email", "phone_number", "post",
+                                        "explode(chunks) as chunk").withColumn("embedding",
+                                                                               create_embedding(col("chunk")))
 
-    # Write the output
-    query = processed_df \
+    # Prepare metadata
+    output_df = embedded_df.select(
+        col("id"),
+        to_json(struct(
+            col("name"),
+            col("address"),
+            col("email"),
+            col("phone_number")
+        )).alias("metadata"),
+        col("chunk").alias("post"),
+        col("embedding")
+    )
+
+    # Convert the DataFrame to JSON format
+    json_df = output_df.select(to_json(struct("*")).alias("value"))
+
+    # Write to Kafka
+    query = json_df \
         .writeStream \
-        .outputMode("append") \
-        .format("console") \
+        .format("kafka") \
+        .option("kafka.bootstrap.servers", "redpanda:29092") \
+        .option("topic", "output-spark-topic") \
+        .option("checkpointLocation", "/tmp/checkpoint") \
         .start()
 
     query.awaitTermination()
