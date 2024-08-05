@@ -42,8 +42,8 @@ class KafkaConsumerWrapper:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    bootstrap_servers = ['localhost:9092']
-    kafka_topic = 'your_topic_name'
+    bootstrap_servers = ['localhost:9093']
+    kafka_topic = 'my-topic'
 
     logging.info(f"Kafka producer initialized. Servers: {bootstrap_servers}")
 
