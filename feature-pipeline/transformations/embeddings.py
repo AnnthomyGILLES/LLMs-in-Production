@@ -1,27 +1,45 @@
-import numpy as np
-from InstructorEmbedding import INSTRUCTOR
+from pyspark.sql.functions import udf
+from pyspark.sql.types import ArrayType, FloatType
 from sentence_transformers import SentenceTransformer
 
 
-def create_embedding(text: str):
-    model = SentenceTransformer(
-        "all-MiniLM-L6-v2", device="cpu"
-    )
-    return model.encode(text)
+def initialize_model():
+    return SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
 
 
-def embedd_repositories(text: str):
-    model = INSTRUCTOR("hkunlp/instructor-xl")
-    sentence = text
-    instruction = "Represent the structure of the repository"
-    return model.encode([instruction, sentence])
+def create_embedding(model, text):
+    return model.encode(text).tolist()
 
 
+def get_embedding_udf(spark):
+    model = initialize_model()
+    broadcast_model = spark.sparkContext.broadcast(model)
+
+    @udf(returnType=ArrayType(FloatType()))
+    def embedding_udf(text):
+        return create_embedding(broadcast_model.value, text)
+
+    return embedding_udf
+
+
+# This main function is just for testing purposes
 def main():
-    simple_text = "This is a simple sentence for embedding."
-    simple_embedding = create_embedding(simple_text)
-    print("Simple embedding shape:", np.array(simple_embedding).shape)
-    # print("First few values of simple embedding:", simple_embedding[:5])
+    from pyspark.sql import SparkSession
+
+    spark = SparkSession.builder.appName("EmbeddingTest").getOrCreate()
+
+    # Get the UDF
+    embedding_udf = get_embedding_udf(spark)
+
+    # Create a sample dataframe
+    df = spark.createDataFrame([("This is a test sentence",)], ["text"])
+
+    # Apply the UDF
+    result = df.withColumn("embedding", embedding_udf("text"))
+
+    result.show(truncate=False)
+
+    spark.stop()
 
 
 if __name__ == "__main__":
