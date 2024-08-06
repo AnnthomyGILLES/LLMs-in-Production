@@ -1,22 +1,30 @@
-# Use an official Python runtime as the base image
-FROM python:3.9-slim
+# Use Bitnami Spark image
+FROM bitnami/spark:3.5
+
+USER root
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-# Copy the requirements file into the container
+# Install pip and any needed packages specified in requirements.txt
+RUN apt-get update && apt-get install -y python3-pip
 COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+## Switch back to the non-root user
+#USER 1001
 
-# Copy the rest of the application code
-COPY . .
+# Set environment variables
+ENV PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
 
-# Run the application
-CMD ["python", "fake_cdc_streamer.py"]
+# Expose Spark driver and block manager ports
+EXPOSE 7001 7002 4040
+
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
+
+
+# Run the script when the container launches
+#CMD ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0", "your_script_name.py"]
