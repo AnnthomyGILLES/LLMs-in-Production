@@ -103,6 +103,16 @@ services:
       --conf spark.streaming.kafka.maxRatePerPartition=100
       /app/spark_preprocessing.py
 
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:latest
+    ports:
+      - "8081:8080"
+    environment:
+      - KAFKA_BROKERS=redpanda:29092
+    depends_on:
+      - redpanda
+    networks:
+      - kafka-network
 
 #  storing-service:
 #    build:
