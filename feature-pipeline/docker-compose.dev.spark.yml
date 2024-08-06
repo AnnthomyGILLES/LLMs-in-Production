@@ -24,20 +24,20 @@ services:
           memory: 3G
 
   spark:
-    image: bitnami/spark:3
+    image: bitnami/spark:3.5
     environment:
-      - SPARK_MODE=master
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
-      - SPARK_WORKER_MEMORY=8g
+    #      - SPARK_WORKER_MEMORY=8g
     ports:
       - "8090:8080"
       - "7077:7077"
     volumes:
       - spark-volume:/bitnami
-      - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/scripts"
     networks:
       - kafka-network
     deploy:
@@ -46,10 +46,86 @@ services:
           memory: 10G
         reservations:
           memory: 8G
+    depends_on:
+      - redpanda
+
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    container_name: qdrant
+    ports:
+      - 6333:6333
+    expose:
+      - 6333
+    configs:
+      - source: qdrant_config
+        target: /qdrant/config/production.yaml
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - kafka-network
+    depends_on:
+      - spark
+
+  feature-pipeline:
+    build:
+      context: ../feature-pipeline
+      dockerfile: Dockerfile
+    volumes:
+      - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/app"
+    networks:
+      - kafka-network
+    depends_on:
+      - spark
+      - redpanda
+    environment:
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_LOCAL_IP=0.0.0.0
+      - SPARK_DRIVER_HOST=feature-pipeline
+      - SPARK_DRIVER_PORT=7001
+      - SPARK_DRIVER_BINDADDRESS=0.0.0.0
+      - SPARK_BLOCKMANAGER_PORT=7002
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_WORKER_CORES=2
+      - TRANSFORMERS_CACHE=/tmp/huggingface_cache
+    ports:
+      - "7001:7001"
+      - "7002:7002"
+    command: >
+      spark-submit
+      --master spark://spark:7077
+      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,com.johnsnowlabs.nlp:spark-nlp_2.12:5.1.4
+      --conf spark.executor.memory=4g
+      --conf spark.driver.memory=4g
+      --conf spark.executor.cores=2
+      --conf spark.driver.cores=2
+      --conf spark.streaming.kafka.maxRatePerPartition=100
+      /app/spark_preprocessing.py
+
+
+#  storing-service:
+#    build:
+#      context: ../feature-pipeline
+#      dockerfile: Dockerfile
+#    volumes:
+#      - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/scripts"
+#    networks:
+#      - kafka-network
+#    depends_on:
+#      - redpanda
+#      - qdrant
+#    command: [ "python", "/scripts/storing.py" ]
+
+configs:
+  qdrant_config:
+    content: |
+      log_level: INFO      
 
 volumes:
   redpanda-data:
   spark-volume:
+  qdrant_data:
 
 networks:
   kafka-network:
