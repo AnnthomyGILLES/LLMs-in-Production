@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col, to_json, struct
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+from pyspark.sql.functions import from_json, col, to_json, struct, udf
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, ArrayType, FloatType
 
 from transformations.chunking import chunk_text
 from transformations.embeddings import create_embedding
@@ -17,21 +17,26 @@ if __name__ == '__main__':
     ])
 
     # Create SparkSession
-    spark = SparkSession.builder.appName("KafkaSparkStreaming").getOrCreate()
+    spark = SparkSession.builder.appName("KafkaSparkStreaming").master("local[*]").getOrCreate()
+
+    # Create UDFs
+    chunk_text_udf = udf(lambda x: chunk_text(x), ArrayType(StringType()))
+    create_embedding_udf = udf(lambda x: create_embedding(x), ArrayType(FloatType()))
 
     # Read from Kafka
     df = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "redpanda:29092").option("subscribe",
                                                                                                      "my-topic").load()
+
     # Parse JSON from Kafka
     parsed_df = df.select(from_json(col("value").cast("string"), schema).alias("data")).select("data.*")
 
     # Apply chunking to the "post" field
-    chunked_df = parsed_df.withColumn("chunks", chunk_text(col("post")))
+    chunked_df = parsed_df.withColumn("chunks", chunk_text_udf(col("post")))
 
     # Explode the chunks and create embeddings
     embedded_df = chunked_df.selectExpr("id", "name", "address", "email", "phone_number", "post",
                                         "explode(chunks) as chunk").withColumn("embedding",
-                                                                               create_embedding(col("chunk")))
+                                                                               create_embedding_udf(col("chunk")))
 
     # Prepare metadata
     output_df = embedded_df.select(
