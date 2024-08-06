@@ -26,7 +26,7 @@ services:
   spark:
     image: bitnami/spark:3.5
     environment:
-      - SPARK_MODE=worker
+      - SPARK_MODE=master
       - SPARK_MASTER_URL=spark://spark:7077
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
@@ -88,7 +88,7 @@ services:
       - SPARK_BLOCKMANAGER_PORT=7002
       - SPARK_WORKER_MEMORY=4g
       - SPARK_WORKER_CORES=2
-      - TRANSFORMERS_CACHE=/tmp/huggingface_cache
+      - HF_HOME=/tmp/huggingface_cache
     ports:
       - "7001:7001"
       - "7002:7002"
