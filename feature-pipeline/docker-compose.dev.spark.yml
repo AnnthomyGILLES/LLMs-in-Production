@@ -68,6 +68,17 @@ services:
     depends_on:
       - spark
 
+  run_qdrant_script:
+    image: python:3.11-slim-bookworm
+    command: [ "sh", "-c", "export PYTHONPATH=$PYTHONPATH:/app && pip3 install -r /app/requirements_qdrant.txt && python /app/transformations/storing.py" ]
+    volumes:
+      - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/app"
+    depends_on:
+      - qdrant
+      - redpanda
+    networks:
+      - kafka-network
+
   feature-pipeline:
     build:
       context: ../feature-pipeline
@@ -114,18 +125,6 @@ services:
     networks:
       - kafka-network
 
-#  storing-service:
-#    build:
-#      context: ../feature-pipeline
-#      dockerfile: Dockerfile
-#    volumes:
-#      - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/scripts"
-#    networks:
-#      - kafka-network
-#    depends_on:
-#      - redpanda
-#      - qdrant
-#    command: [ "python", "/scripts/storing.py" ]
 
 configs:
   qdrant_config:
