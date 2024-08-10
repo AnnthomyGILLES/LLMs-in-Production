@@ -29,6 +29,7 @@ openai = "^1.38.0"
 tiktoken = "^0.7.0"
 langchain-openai = "^0.1.20"
 qdrant-client = "^1.10.1"
+loguru = "^0.7.2"
 
 
 [build-system]
