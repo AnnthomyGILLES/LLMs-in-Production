@@ -1,7 +1,6 @@
 import json
 
 from qdrant_client import models, QdrantClient
-from qdrant_client.grpc import VectorParams
 from sentence_transformers import SentenceTransformer
 
 from fake_kafka_consumer import KafkaConsumerWrapper
@@ -21,12 +20,12 @@ def process_and_insert_to_qdrant():
     if not client.collection_exists(collection_name="startups"):
         client.create_collection(
             collection_name="startups",
-            vectors_config=VectorParams(size=encoder.get_sentence_embedding_dimension(),
-                                        distance=models.Distance.COSINE),
+            vectors_config={"default": models.VectorParams(size=encoder.get_sentence_embedding_dimension(),
+                                                           distance=models.Distance.COSINE)},
         )
 
     # Process messages and insert into Qdrant
-    for message in consumer:
+    for message in consumer.consumer:
         data = message.value
 
         point = models.PointStruct(
