@@ -4,7 +4,7 @@ from loguru import logger
 from qdrant_client import models, QdrantClient
 from sentence_transformers import SentenceTransformer
 
-from fake_kafka_consumer import KafkaConsumerWrapper
+from common.utils.kafka_consumer import KafkaConsumerWrapper
 
 
 def process_and_insert_to_qdrant():
@@ -16,7 +16,7 @@ def process_and_insert_to_qdrant():
     logger.info("Kafka Consumer successfully instantiated")
 
     logger.info("Setting up SentenceTransformer model")
-    encoder = SentenceTransformer("all-MiniLM-L6-v2")
+    encoder = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
     logger.info("SentenceTransformer model loaded successfully")
 
     logger.info("Initializing Qdrant client")

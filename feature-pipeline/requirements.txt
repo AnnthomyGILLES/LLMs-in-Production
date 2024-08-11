@@ -1,8 +1,0 @@
-Faker==26.0.0
-kafka_python==2.0.2
-langchain
-langchain_text_splitters==0.2.2
-numpy
-pyspark==3.5.1
-qdrant_client==1.10.1
-sentence_transformers==3.0.1

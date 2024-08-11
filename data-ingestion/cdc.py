@@ -51,7 +51,7 @@ class ChangeDataCapture:
 
 
 if __name__ == "__main__":
-    from kafka_producer import KafkaProducerWrapper
+    from common.utils.kafka_producer import KafkaProducerWrapper
 
     bootstrap_servers = ['localhost:9093']
     kafka_topic = 'outgoing-data'

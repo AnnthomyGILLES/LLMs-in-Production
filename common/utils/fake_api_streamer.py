@@ -3,7 +3,7 @@ import time
 
 from faker import Faker
 
-from kafka_producer import KafkaProducerWrapper
+from common.utils.kafka_producer import KafkaProducerWrapper
 
 
 class FakeAPIStreamer:

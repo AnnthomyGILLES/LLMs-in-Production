@@ -2,9 +2,9 @@ import logging
 import os
 import threading
 
-from fake_api_streamer import FakeAPIStreamer
-from kafka_consumer import KafkaConsumerWrapper
-from kafka_producer import KafkaProducerWrapper
+from common.utils.fake_api_streamer import FakeAPIStreamer
+from common.utils.kafka_consumer import KafkaConsumerWrapper
+from common.utils.kafka_producer import KafkaProducerWrapper
 from mongodb_writer import MongoDBWriter
 
 
