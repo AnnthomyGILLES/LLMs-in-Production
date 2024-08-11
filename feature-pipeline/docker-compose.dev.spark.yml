@@ -70,7 +70,7 @@ services:
 
   run_qdrant_script:
     image: python:3.11-slim-bookworm
-    command: [ "sh", "-c", "export PYTHONPATH=$PYTHONPATH:/app && pip3 install -r /app/requirements_qdrant.txt && python /app/transformations/storing.py" ]
+    command: [ "sh", "-c", "export PYTHONPATH=$PYTHONPATH:/app && pip3 install -r /app/requirements_qdrant.txt && python /app/src/storing.py" ]
     volumes:
       - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/app"
     depends_on:

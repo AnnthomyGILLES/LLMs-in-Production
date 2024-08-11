@@ -2,8 +2,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, to_json, struct, udf
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, ArrayType
 
-from transformations.chunking import chunk_text
-from transformations.embeddings import get_embedding_udf
+from src.chunking import chunk_text
+from src.embeddings import get_embedding_udf
 
 if __name__ == '__main__':
     # Define the schema of the incoming data
@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
         # Convert the DataFrame to JSON format
         json_df = output_df.select(to_json(struct("*")).alias("value"))
-    
+
         # Write to Kafka
         query = json_df \
             .writeStream \
