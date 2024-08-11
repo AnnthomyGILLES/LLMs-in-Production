@@ -1,9 +1,10 @@
-import json
 import logging
 import time
 
 import requests
 from kafka import KafkaProducer
+
+from common.kafka.serializers import serialize_message
 
 
 class APIStreamer:
@@ -38,7 +39,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     producer = KafkaProducer(
         bootstrap_servers=['localhost:9093'],
-        value_serializer=lambda v: json.dumps(v).encode('utf-8')
+        value_serializer=lambda v: serialize_message(v)
     )
     streamer = APIStreamer('https://api.example.com/data', producer, 'my-topic')
     streamer.stream_data()

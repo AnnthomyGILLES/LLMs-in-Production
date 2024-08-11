@@ -1,9 +1,10 @@
-import json
 import logging
 from typing import Any, Dict
 
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
+
+from common.kafka.serializers import serialize_message
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -15,7 +16,7 @@ class KafkaProducerWrapper:
         self.topic = topic
         self.producer = KafkaProducer(
             bootstrap_servers=bootstrap_servers,
-            value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+            value_serializer=lambda v: serialize_message(v),
             **kwargs
         )
         logging.info(f"Kafka producer initialized for topic: {self.topic}")
