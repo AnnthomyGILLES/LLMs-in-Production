@@ -1,40 +1,27 @@
 services:
-  zookeeper:
-    restart: always
-    image: docker.io/bitnami/zookeeper:3.8
-    ports:
-      - "2181:2181"
-    volumes:
-      - "zookeeper-volume:/bitnami"
-    environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
-    networks:
-      - app-network
-
-  kafka:
-    restart: always
-    image: docker.io/bitnami/kafka:3.3
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda start
+      - --smp 2
+      - --overprovisioned
+      - --node-id 0
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9093
+      - --advertise-kafka-addr PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9093
+      - --memory 4G
     ports:
       - "9093:9093"
+      - "29092:29092"
     volumes:
-      - "kafka-volume:/bitnami"
-    environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092,EXTERNAL://localhost:9093
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
-    depends_on:
-      - zookeeper
+      - redpanda-data:/var/lib/redpanda/data
     networks:
-      - app-network
-    healthcheck:
-      test: [ "CMD", "kafka-topics.sh", "--list", "--bootstrap-server", "localhost:9092" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      - kafka-network
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 3G
 
   mongodb:
     image: mongo:latest
@@ -51,21 +38,8 @@ services:
     volumes:
       - mongodb_data:/data/db
     networks:
-      - app-network
+      - kafka-network
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    ports:
-      - 8081:8080
-    environment:
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
-      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
-    depends_on:
-      kafka:
-        condition: service_healthy
-    networks:
-      - app-network
 
   data-ingestion:
     build:
@@ -88,11 +62,121 @@ services:
     networks:
       - app-network
 
+
+  spark:
+    image: bitnami/spark:3.5
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    #      - SPARK_WORKER_MEMORY=8g
+    ports:
+      - "8090:8080"
+      - "7077:7077"
+    volumes:
+      - spark-volume:/bitnami
+    networks:
+      - kafka-network
+    deploy:
+      resources:
+        limits:
+          memory: 10G
+        reservations:
+          memory: 8G
+    depends_on:
+      - redpanda
+
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    container_name: qdrant
+    ports:
+      - 6333:6333
+    expose:
+      - 6333
+    configs:
+      - source: qdrant_config
+        target: /qdrant/config/production.yaml
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - kafka-network
+    depends_on:
+      - spark
+
+  run_qdrant_script:
+    image: python:3.11-slim-bookworm
+    command: [ "sh", "-c", "export PYTHONPATH=$PYTHONPATH:/app && pip3 install -r /app/requirements_qdrant.txt && python /app/src/storing.py" ]
+    volumes:
+      - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/app"
+    depends_on:
+      - qdrant
+      - redpanda
+    networks:
+      - kafka-network
+
+  feature-pipeline:
+    build:
+      context: ../feature-pipeline
+      dockerfile: Dockerfile
+    volumes:
+      - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/app"
+    networks:
+      - kafka-network
+    depends_on:
+      - spark
+      - redpanda
+    environment:
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_LOCAL_IP=0.0.0.0
+      - SPARK_DRIVER_HOST=feature-pipeline
+      - SPARK_DRIVER_PORT=7001
+      - SPARK_DRIVER_BINDADDRESS=0.0.0.0
+      - SPARK_BLOCKMANAGER_PORT=7002
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_WORKER_CORES=2
+      - HF_HOME=/tmp/huggingface_cache
+    ports:
+      - "7001:7001"
+      - "7002:7002"
+    command: >
+      spark-submit
+      --master spark://spark:7077
+      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,com.johnsnowlabs.nlp:spark-nlp_2.12:5.1.4
+      --conf spark.executor.memory=4g
+      --conf spark.driver.memory=4g
+      --conf spark.executor.cores=2
+      --conf spark.driver.cores=2
+      --conf spark.streaming.kafka.maxRatePerPartition=100
+      /app/spark_preprocessing.py
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:latest
+    ports:
+      - "8081:8080"
+    environment:
+      - KAFKA_BROKERS=redpanda:29092
+    depends_on:
+      - redpanda
+    networks:
+      - kafka-network
+
+
+configs:
+  qdrant_config:
+    content: |
+      log_level: INFO      
+
 volumes:
+  redpanda-data:
+  spark-volume:
+  qdrant_data:
   mongodb_data:
-  kafka-volume:
-  zookeeper-volume:
 
 networks:
-  app-network:
+  kafka-network:
     driver: bridge
