@@ -1,15 +1,8 @@
 services:
-  #  run_qdrant_script:
-  #    build:
-  #      context: .
-  #      dockerfile: Dockerfile.storing
-  #    networks:
-  #      - llm-to_prod_kafka-network
-
   run_spark_script:
     build:
       context: .
-      dockerfile: Dockerfile.spark_preprocessing
+      dockerfile: Dockerfile
     environment:
       - SPARK_MASTER_URL=spark://spark:7077
       - SPARK_LOCAL_IP=0.0.0.0
