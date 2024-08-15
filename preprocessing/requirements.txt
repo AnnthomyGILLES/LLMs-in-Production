@@ -5,5 +5,5 @@ numpy==1.26.4
 pyspark==3.5.1
 sentence-transformers==3.0.1
 transformers==4.43.3
-torch==2.4.0
+torch==2.4.0+cpu
 loguru==0.7.2

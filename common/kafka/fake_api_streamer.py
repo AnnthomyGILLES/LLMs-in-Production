@@ -29,7 +29,7 @@ class FakeAPIStreamer:
         }
         return fake_data
 
-    def stream_data(self, interval=1, max_iterations=None):
+    def stream_data(self, interval=0.5, max_iterations=None):
         """
         Streams fake data and sends it to Kafka with a limit on the number of iterations.
 

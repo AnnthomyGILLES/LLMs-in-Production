@@ -23,44 +23,65 @@ services:
         reservations:
           memory: 3G
 
-  mongodb:
-    image: mongo:latest
-    command: [ "--replSet", "rs0", "--bind_ip_all", "--port", "27017" ]
-    ports:
-      - 27017:27017
-    extra_hosts:
-      - "host.docker.internal:172.20.0.1"
-    healthcheck:
-      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'host.docker.internal:27017'}]}) }" | mongosh --port 27017 --quiet
-      interval: 5s
-      timeout: 30s
-      retries: 30
-    volumes:
-      - mongodb_data:/data/db
+  preprocessing:
+    build:
+      context: ./preprocessing
+      dockerfile: Dockerfile
     networks:
       - kafka-network
-
-
-  data-ingestion:
-    build:
-      context: ./data-ingestion
-      dockerfile: Dockerfile
     depends_on:
-      kafka:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-    ports:
-      - 8080:8080
-    environment:
-      - KAFKA_SERVERS=kafka:9092
-      - KAFKA_TOPIC=incoming-data
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB=llmtoprod_db
-      - MONGO_COLLECTION=kafka_messages
-      - API_URL=https://api.example.com/data
+      - redpanda
+      - spark
+
+  vector-storing:
+    build:
+      context: ./vector-storing
+      dockerfile: Dockerfile
     networks:
-      - app-network
+      - kafka-network
+    depends_on:
+      - redpanda
+      - qdrant
+
+
+  #  mongodb:
+  #    image: mongo:latest
+  #    command: [ "--replSet", "rs0", "--bind_ip_all", "--port", "27017" ]
+  #    ports:
+  #      - 27017:27017
+  #    extra_hosts:
+  #      - "host.docker.internal:172.20.0.1"
+  #    healthcheck:
+  #      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'host.docker.internal:27017'}]}) }" | mongosh --port 27017 --quiet
+  #      interval: 5s
+  #      timeout: 30s
+  #      retries: 30
+  #    volumes:
+  #      - mongodb_data:/data/db
+  #    networks:
+  #      - kafka-network
+
+
+  #  data-ingestion:
+  #    build:
+  #      context: ./data-ingestion
+  #      dockerfile: Dockerfile
+  #    depends_on:
+  #      kafka:
+  #        condition: service_healthy
+  #      mongodb:
+  #        condition: service_healthy
+  #    ports:
+  #      - 8080:8080
+  #    environment:
+  #      - KAFKA_SERVERS=kafka:9092
+  #      - KAFKA_TOPIC=incoming-data
+  #      - MONGO_URI=mongodb://mongodb:27017
+  #      - MONGO_DB=llmtoprod_db
+  #      - MONGO_COLLECTION=kafka_messages
+  #      - API_URL=https://api.example.com/data
+  #    networks:
+  #      - app-network
 
 
   spark:
@@ -108,51 +129,6 @@ services:
     depends_on:
       - spark
 
-  run_qdrant_script:
-    image: python:3.11-slim-bookworm
-    command: [ "sh", "-c", "export PYTHONPATH=$PYTHONPATH:/app && pip3 install -r /app/requirements_qdrant.txt && python /app/src/storing.py" ]
-    volumes:
-      - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/app"
-    depends_on:
-      - qdrant
-      - redpanda
-    networks:
-      - kafka-network
-
-  feature-pipeline:
-    build:
-      context: ../feature-pipeline
-      dockerfile: Dockerfile
-    volumes:
-      - "C:/Users/gotam/PycharmProjects/LLM-to_Prod/feature-pipeline:/app"
-    networks:
-      - kafka-network
-    depends_on:
-      - spark
-      - redpanda
-    environment:
-      - SPARK_MASTER_URL=spark://spark:7077
-      - SPARK_LOCAL_IP=0.0.0.0
-      - SPARK_DRIVER_HOST=feature-pipeline
-      - SPARK_DRIVER_PORT=7001
-      - SPARK_DRIVER_BINDADDRESS=0.0.0.0
-      - SPARK_BLOCKMANAGER_PORT=7002
-      - SPARK_WORKER_MEMORY=4g
-      - SPARK_WORKER_CORES=2
-      - HF_HOME=/tmp/huggingface_cache
-    ports:
-      - "7001:7001"
-      - "7002:7002"
-    command: >
-      spark-submit
-      --master spark://spark:7077
-      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,com.johnsnowlabs.nlp:spark-nlp_2.12:5.1.4
-      --conf spark.executor.memory=4g
-      --conf spark.driver.memory=4g
-      --conf spark.executor.cores=2
-      --conf spark.driver.cores=2
-      --conf spark.streaming.kafka.maxRatePerPartition=100
-      /app/spark_preprocessing.py
 
   redpanda-console:
     image: docker.redpanda.com/redpandadata/console:latest

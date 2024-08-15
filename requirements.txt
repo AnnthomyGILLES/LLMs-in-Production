@@ -1,0 +1,12 @@
+pymongo~=4.8.0
+pydantic~=2.8.2
+faker~=26.0.0
+selenium~=4.23.1
+bs4~=0.0.2
+beautifulsoup4~=4.12.3
+structlog~=24.1.0
+requests~=2.32.3
+langchain~=0.2.12
+numpy~=1.26.4
+instructorembedding~=1.0.1
+pyspark~=3.5.1
