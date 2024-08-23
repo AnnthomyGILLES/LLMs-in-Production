@@ -4,7 +4,7 @@ from loguru import logger
 from qdrant_client import models, QdrantClient
 from sentence_transformers import SentenceTransformer
 
-from common.kafka.kafka_consumer import KafkaConsumerWrapper
+from common.kafka_utils.kafka_consumer import KafkaConsumerWrapper
 
 
 def process_and_insert_to_qdrant():

@@ -4,7 +4,7 @@ from typing import Any, Dict
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
 
-from common.kafka.serializers import serialize_message
+from common.kafka_utils.serializers import serialize_message
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 

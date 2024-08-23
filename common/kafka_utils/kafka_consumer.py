@@ -2,7 +2,7 @@ import logging
 
 from kafka import KafkaConsumer
 
-from common.kafka.serializers import deserialize_message
+from common.kafka_utils.serializers import deserialize_message
 
 
 class KafkaConsumerWrapper:

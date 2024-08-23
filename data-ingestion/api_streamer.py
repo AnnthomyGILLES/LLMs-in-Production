@@ -4,7 +4,7 @@ import time
 import requests
 from kafka import KafkaProducer
 
-from common.kafka.serializers import serialize_message
+from common.kafka_utils.serializers import serialize_message
 
 
 class APIStreamer:
