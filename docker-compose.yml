@@ -29,6 +29,8 @@ services:
       dockerfile: Dockerfile
     networks:
       - kafka-network
+    volumes:
+      - ./common:/app/common
     depends_on:
       - redpanda
       - spark
@@ -39,6 +41,9 @@ services:
       dockerfile: Dockerfile
     networks:
       - kafka-network
+    volumes:
+      - ./common:/app/common
+      - ./vector-storing:/app
     depends_on:
       - redpanda
       - qdrant
@@ -59,7 +64,7 @@ services:
   #    volumes:
   #      - mongodb_data:/data/db
   #    networks:
-  #      - kafka-network
+  #      - kafka_utils-network
 
 
   #  data-ingestion:
