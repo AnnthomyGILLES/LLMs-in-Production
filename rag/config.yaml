@@ -1,0 +1,22 @@
+ray_init:
+  num_gpus: null
+  num_cpus: 4
+
+directory_path: "D:/Téléchargements/llm security/attacks"
+
+chunking_parameters:
+  chunk_size: 300
+  chunk_overlap: 50
+  separators:
+    - "\n\n"
+    - "\n"
+    - " "
+    - ""
+
+models:
+  embedding: "all-MiniLM-L6-v2"
+  retrieval: "gpt-3.5-turbo-1106"
+
+batch_processing:
+  batch_size: 128
+  concurrency: 1
