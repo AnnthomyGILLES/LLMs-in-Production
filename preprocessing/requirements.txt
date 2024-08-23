@@ -1,3 +1,4 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 kafka_python==2.0.2
 langchain==0.2.12
 langchain_text_splitters==0.2.2
@@ -5,5 +6,5 @@ numpy==1.26.4
 pyspark==3.5.1
 sentence-transformers==3.0.1
 transformers==4.43.3
-torch==2.4.0+cpu
+torch==2.4.0
 loguru==0.7.2

@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY . /app
 
+ENV PYTHONPATH "${PYTHONPATH}:/app/common"
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python3", "/src/storing.py"]
+CMD ["python3", "/app/storing.py"]

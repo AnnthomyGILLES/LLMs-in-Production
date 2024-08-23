@@ -10,14 +10,13 @@ WORKDIR /app
 COPY . /app
 
 # Install pip and any needed packages specified in requirements.txt
-RUN apt-get update && apt-get install -y python3-pip
+RUN apt-get update && apt-get install -y python3-pip && apt-get clean
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Set environment variables
 ENV PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
 ENV SPARK_MASTER_URL=spark://spark:7077
-ENV SPARK_LOCAL_IP=0.0.0.0
 ENV SPARK_DRIVER_HOST=preprocessing
 ENV SPARK_DRIVER_PORT=7001
 ENV SPARK_DRIVER_BINDADDRESS=0.0.0.0
