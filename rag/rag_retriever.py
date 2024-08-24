@@ -41,7 +41,7 @@ class RAGRetriever:
 
         search_params = {
             "collection_name": self.collection_name,
-            "query_vector": query_vector,
+            "query_vector": ("content", query_vector),
             "limit": top_k
         }
 
@@ -53,8 +53,8 @@ class RAGRetriever:
         retrieved_docs = []
         for result in results:
             retrieved_docs.append({
-                "content": result.payload.get("content", ""),
-                "metadata": {k: v for k, v in result.payload.items() if k != "content"},
+                "content": result.payload["article"],
+                "metadata": {k: v for k, v in result.payload.items() if k != "article"},
                 "score": result.score
             })
 
@@ -86,10 +86,10 @@ if __name__ == '__main__':
     retriever = RAGRetriever(
         qdrant_host="localhost",
         qdrant_port=6333,
-        collection_name="my_books"
+        collection_name="wikipedia"
     )
 
-    query = "What is genetic engineering?"
+    query = "Europe"
     results = retriever.retrieve(query, top_k=3)
 
     for doc in results:

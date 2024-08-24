@@ -37,7 +37,7 @@ class ResearchAssistant:
         self.store = RAGRetriever(
             qdrant_host="localhost",
             qdrant_port=6333,
-            collection_name="my_books"
+            collection_name="wikipedia"
         )
 
     def augment_query(self, query):
@@ -67,7 +67,7 @@ class ResearchAssistant:
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful expert research assistant in artificial intelligence. Your users are asking questions about information contained in a documentation."
+                "content": "You are a helpful expert assistant in artificial intelligence. Your users are asking questions about information contained in a documentation."
                            "You will be shown the user's question, and the relevant information from documentation. Answer the user's question using only this information.",
             },
             {
@@ -108,6 +108,6 @@ class ResearchAssistant:
 
 if __name__ == "__main__":
     assistant = ResearchAssistant()
-    query = "genetic engineering"
+    query = "Europe"
     result = assistant.process_query(query)
     print(result)
