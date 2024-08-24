@@ -82,14 +82,14 @@ def download_paper(url: str, filepath: Path) -> None:
 
 
 def download_papers_from_arxiv(
-        output_directory: Path, search_query: str, max_results: int
+        search_query: str, output_directory: Path, max_results: int
 ) -> None:
     """
     Downloads a specified number of papers from arXiv based on a given search query.
 
     Args:
-        output_directory (Path): The directory where downloaded papers will be stored.
         search_query (str): The query term to search for papers.
+        output_directory (Path): The directory where downloaded papers will be stored.
         max_results (int): The maximum number of papers to download.
 
     This function fetches paper URLs using the search query and downloads the papers
@@ -130,7 +130,7 @@ def ingest_documents(input_directory: Path) -> List[Dict[str, str]]:
         If not, you'll need to install or import the necessary libraries.
     """
     nb_files_processed = 0
-    processed_files_path = Path("_processed_files.txt")
+    processed_files_path = input_directory / Path("_processed_files.txt")
     if not processed_files_path.exists():
         processed_files_path.touch()
 
@@ -165,10 +165,11 @@ def ingest_documents(input_directory: Path) -> List[Dict[str, str]]:
 
 
 if __name__ == "__main__":
-    output_directory = Path.cwd() / "data" / "raw"
+    output_directory = Path.cwd().parent / "data" / "raw"
     output_directory.mkdir(parents=True, exist_ok=True)
 
-    search_query = "large language model"
-    max_results = 2
+    search_query = "biology"
+    max_results = 5
 
-    download_papers_from_arxiv(output_directory, search_query, max_results)
+    download_papers_from_arxiv(search_query, output_directory, max_results)
+    # documents = ingest_documents(output_directory)
