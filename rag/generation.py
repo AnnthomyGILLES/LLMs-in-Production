@@ -1,14 +1,13 @@
 import os
 
 import numpy as np
-from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
 from openai import OpenAI
 from sentence_transformers import CrossEncoder
 
 from config import config
-from retrieval import augment_query_generated
-from storage import StoreResults
+from query_augmentation import augment_query_generated
+from rag_retriever import RAGRetriever
 from tools import word_wrap, call_openai
 
 load_dotenv()
@@ -26,7 +25,6 @@ class ResearchAssistant:
     a retrieval model for fetching documents, and an OpenAI model for generating responses.
 
     Attributes:
-        embedding_function (SentenceTransformerEmbeddingFunction): Embedding function for processing queries.
         model (str): Name of the retrieval model used for document fetching.
         store (StoreResults): Instance for storing and retrieving results.
     """
@@ -35,13 +33,12 @@ class ResearchAssistant:
         """
         Initialize the ResearchAssistant class with required models and storage mechanisms.
         """
-        self.embedding_function = (
-            embedding_functions.SentenceTransformerEmbeddingFunction(
-                model_name=config["models"]["embedding"]
-            )
-        )
         self.model = config["models"]["retrieval"]
-        self.store = StoreResults()
+        self.store = RAGRetriever(
+            qdrant_host="localhost",
+            qdrant_port=6333,
+            collection_name="my_books"
+        )
 
     def augment_query(self, query):
         """
@@ -54,23 +51,6 @@ class ResearchAssistant:
             str: The augmented query.
         """
         return augment_query_generated(query)
-
-    def retrieve_documents(self, query, n_results=5):
-        """
-        Retrieve a set of documents relevant to the given query.
-
-        Args:
-            query (str): The query for which relevant documents are to be retrieved.
-
-        Returns:
-            list: A list of retrieved documents.
-        """
-        results = self.store.collection.query(
-            query_texts=[query],
-            n_results=n_results,
-            include=["documents", "embeddings"],
-        )
-        return results["documents"][0]
 
     def generate_response(self, query, retrieved_documents):
         """
@@ -120,7 +100,7 @@ class ResearchAssistant:
             str: The final processed output for the query.
         """
         joint_query = self.augment_query(original_query)
-        retrieved_documents = self.retrieve_documents(joint_query)
+        retrieved_documents = self.store.retrieve(joint_query)
         reordered_documents = self.rerank_documents(joint_query, retrieved_documents)
         output = self.generate_response(original_query, reordered_documents)
         return word_wrap(output)
@@ -128,6 +108,6 @@ class ResearchAssistant:
 
 if __name__ == "__main__":
     assistant = ResearchAssistant()
-    query = "what are the strategies to mitigate hallucination in llm"
+    query = "genetic engineering"
     result = assistant.process_query(query)
     print(result)
