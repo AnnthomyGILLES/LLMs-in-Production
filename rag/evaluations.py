@@ -41,13 +41,13 @@ def llm_grader(question, response) -> float:
             {
                 "role": "user",
                 "content": f"[Instruction]\nPlease act as an impartial judge and evaluate the quality of the response "
-                f"provided by an AI assistant to the user question displayed below. Your evaluation should "
-                f"consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and "
-                f"level of detail of the response. Begin your evaluation by providing a short explanation. "
-                f"Be as objective as possible. After providing your explanation, you must rate the response "
-                f'on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: '
-                f'"Rating: [[5]]".\n\n[Question]\n{question}\n\n[The Start of Assistant\'s Answer]'
-                f"\n{response}\n[The End of Assistant's Answer]",
+                           f"provided by an AI assistant to the user question displayed below. Your evaluation should "
+                           f"consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and "
+                           f"level of detail of the response. Begin your evaluation by providing a short explanation. "
+                           f"Be as objective as possible. After providing your explanation, you must rate the response "
+                           f'on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: '
+                           f'"Rating: [[5]]".\n\n[Question]\n{question}\n\n[The Start of Assistant\'s Answer]'
+                           f"\n{response}\n[The End of Assistant's Answer]",
             },
         ],
         temperature=0.0,
@@ -67,13 +67,13 @@ def llm_grader(question, response) -> float:
 if __name__ == "__main__":
     question = "what are the strategies to mitigate hallucination in llm"
     response = """The strategies to mitigate hallucination in Large Language Models (LLMs)
-include the creation of hybrid models that integrate various mitigation
-approaches, reducing reliance on labeled data, and exploring unsupervised or
-weakly supervised learning techniques. Additionally, there are strategies such
-as model development through new decoding strategies, knowledge graph-based
-optimizations, the addition of novel loss function components, and supervised
-fine-tuning. Furthermore, there is a focus on addressing the nuances of
-hallucination in LLMs through diverse array of strategies and the synthesis of
-techniques to produce coherent and contextually relevant information while
-demonstrating heightened awareness and mitigation of hallucinatory outputs"""
+    include the creation of hybrid models that integrate various mitigation
+    approaches, reducing reliance on labeled data, and exploring unsupervised or
+    weakly supervised learning techniques. Additionally, there are strategies such
+    as model development through new decoding strategies, knowledge graph-based
+    optimizations, the addition of novel loss function components, and supervised
+    fine-tuning. Furthermore, there is a focus on addressing the nuances of
+    hallucination in LLMs through diverse array of strategies and the synthesis of
+    techniques to produce coherent and contextually relevant information while
+    demonstrating heightened awareness and mitigation of hallucinatory outputs"""
     print(llm_grader(question, response))

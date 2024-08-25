@@ -1,7 +1,10 @@
 import numpy as np
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import Filter, FieldCondition, MatchValue
+from qdrant_client.http.models import Filter
+from sentence_transformers import CrossEncoder
 from sentence_transformers import SentenceTransformer
+
+cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
 class RAGRetriever:
@@ -60,26 +63,13 @@ class RAGRetriever:
 
         return retrieved_docs
 
-    def retrieve_with_metadata_filter(self, query: str, metadata_field: str, metadata_value: str,
-                                      top_k: int = 5) -> list:
-        """
-        Retrieve documents with a metadata filter applied.
-
-        :param query: User's input query
-        :param metadata_field: Field name in the metadata to filter on
-        :param metadata_value: Value to match in the metadata field
-        :param top_k: Number of top results to retrieve
-        :return: List of retrieved documents with their metadata
-        """
-        filter_condition = {
-            "must": [
-                FieldCondition(
-                    key=metadata_field,
-                    match=MatchValue(value=metadata_value)
-                )
-            ]
-        }
-        return self.retrieve(query, top_k, filter_condition)
+    def rerank_documents(self, query, retrieved_documents):
+        pairs = [[query, doc["content"]] for doc in retrieved_documents]
+        similarity_scores = cross_encoder.predict(pairs)
+        sim_scores_argsort = np.argsort(similarity_scores)[::-1]
+        original_array = np.array(retrieved_documents)
+        reordered_docs = original_array[sim_scores_argsort]
+        return reordered_docs
 
 
 if __name__ == '__main__':

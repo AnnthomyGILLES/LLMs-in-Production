@@ -1,19 +1,15 @@
 import os
 
-import numpy as np
 from dotenv import load_dotenv
 from openai import OpenAI
-from sentence_transformers import CrossEncoder
 
+from augmenter import augment_query_generated
 from config import config
-from query_augmentation import augment_query_generated
-from rag_retriever import RAGRetriever
+from retriever import RAGRetriever
 from tools import word_wrap, call_openai
 
 load_dotenv()
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API"))
-
-cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
 class ResearchAssistant:
@@ -63,7 +59,7 @@ class ResearchAssistant:
         Returns:
             str: The generated response to the query.
         """
-        information = "\n\n".join(retrieved_documents)
+        information = "\n\n".join([doc["content"] for doc in retrieved_documents])
         messages = [
             {
                 "role": "system",
@@ -77,14 +73,6 @@ class ResearchAssistant:
         ]
         response = call_openai(messages, self.model, temperature=0.7)
         return response
-
-    def rerank_documents(self, query, retrieved_documents):
-        pairs = [[query, doc] for doc in retrieved_documents]
-        similarity_scores = cross_encoder.predict(pairs)
-        sim_scores_argsort = np.argsort(similarity_scores)[::-1]
-        original_array = np.array(retrieved_documents)
-        reordered_docs = original_array[sim_scores_argsort]
-        return reordered_docs
 
     def process_query(self, original_query):
         """
@@ -108,6 +96,6 @@ class ResearchAssistant:
 
 if __name__ == "__main__":
     assistant = ResearchAssistant()
-    query = "Europe"
+    query = "when european union started?"
     result = assistant.process_query(query)
     print(result)
