@@ -14,17 +14,13 @@ def upsert_wikipedia_to_db():
         logger.info("Starting the embedding and storage process")
 
         article_df = pd.read_csv('../data/wikipedia.csv', usecols=["url", "title", "text"])
-        article_df = article_df.sample(n=1000, random_state=42)
+        article_df = article_df.head(1000)
         logger.info(f"Loaded {len(article_df)} articles from CSV")
-
-        logger.info("Creating embeddings for titles")
-        title_embeddings = encoder.encode(article_df['title'].tolist())
 
         logger.info("Creating embeddings for content")
         content_embeddings = encoder.encode(article_df['text'].tolist())
 
         logger.info("Adding embeddings to the DataFrame")
-        article_df['title_vector'] = title_embeddings.tolist()
         article_df['content_vector'] = content_embeddings.tolist()
 
         logger.info("DataFrame info:")
@@ -37,10 +33,6 @@ def upsert_wikipedia_to_db():
             client.create_collection(
                 collection_name="wikipedia",
                 vectors_config={
-                    'title': models.VectorParams(
-                        size=encoder.get_sentence_embedding_dimension(),
-                        distance=models.Distance.COSINE,
-                    ),
                     'content': models.VectorParams(
                         size=encoder.get_sentence_embedding_dimension(),
                         distance=models.Distance.COSINE,
@@ -58,8 +50,7 @@ def upsert_wikipedia_to_db():
                     points=[
                         PointStruct(
                             id=k,
-                            vector={'title': v['title_vector'],
-                                    'content': v['content_vector']},
+                            vector={'content': v['content_vector']},
                             payload={
                                 'title': v['title'],
                                 'url': v['url'],
@@ -83,10 +74,11 @@ def upsert_wikipedia_to_db():
 
 
 if __name__ == '__main__':
-    hits = client.search(
-        collection_name="wikipedia",
-        query_vector=("content", encoder.encode("Europe").tolist()),
-        limit=3,
-    )
-    for hit in hits:
-        print(hit.payload, "score:", hit.score)
+    upsert_wikipedia_to_db()
+    # hits = client.search(
+    #     collection_name="wikipedia",
+    #     query_vector=("content", encoder.encode("Europe").tolist()),
+    #     limit=3,
+    # )
+    # for hit in hits:
+    #     print(hit.payload, "score:", hit.score)
