@@ -12,13 +12,17 @@ cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 class RAGRetriever:
     def __init__(self, qdrant_host: str, qdrant_port: int, collection_name: str,
                  embedding_model: str = "all-MiniLM-L6-v2"):
-        """
-        Initialize the RAGRetriever with Qdrant connection and embedding model.
+        """Initialize the RAGRetriever with Qdrant connection and embedding model.
 
-        :param qdrant_host: Hostname of the Qdrant server
-        :param qdrant_port: Port number of the Qdrant server
-        :param collection_name: Name of the Qdrant collection to query
-        :param embedding_model: Name of the sentence-transformers model to use for embeddings
+        Args:
+            qdrant_host (str): Hostname of the Qdrant server.
+            qdrant_port (int): Port number of the Qdrant server.
+            collection_name (str): Name of the Qdrant collection to query.
+            embedding_model (str, optional): Name of the sentence-transformers model to use for embeddings.
+                Defaults to "all-MiniLM-L6-v2".
+
+        Note:
+            This method sets up the Qdrant client and initializes the sentence transformer model.
         """
         self.qdrant_client = QdrantClient(host=qdrant_host, port=qdrant_port)
         self.collection_name = collection_name
