@@ -25,22 +25,35 @@ class RAGRetriever:
         self.embedding_model = SentenceTransformer(embedding_model)
 
     def get_embedding(self, text: str) -> np.ndarray:
-        """
-        Generate an embedding for the given text.
+        """Generate an embedding for the given text.
 
-        :param text: Input text to embed
-        :return: Numpy array representing the embedding
+        Args:
+            text (str): Input text to embed.
+
+        Returns:
+            np.ndarray: A numpy array representing the embedding of the input text.
+
+        Note:
+            This method uses the sentence transformer model specified during initialization.
         """
         return self.embedding_model.encode(text)
 
     def retrieve(self, query: str, top_k: int = 5, filter_condition: dict = None) -> list:
-        """
-        Retrieve the most relevant documents for the given query.
+        """Retrieve the most relevant documents for the given query.
 
-        :param query: User's input query
-        :param top_k: Number of top results to retrieve
-        :param filter_condition: Optional filter to apply to the search
-        :return: List of retrieved documents with their metadata
+        Args:
+            query (str): User's input query.
+            top_k (int, optional): Number of top results to retrieve. Defaults to 5.
+            filter_condition (dict, optional): Optional filter to apply to the search. Defaults to None.
+
+        Returns:
+            list: A list of dictionaries, each containing:
+                - 'content': The retrieved document text.
+                - 'metadata': Additional metadata about the document.
+                - 'score': The relevance score of the document.
+
+        Note:
+            This method performs a vector search in the Qdrant database using the query embedding.
         """
         query_vector = self.get_embedding(query)
 
@@ -66,6 +79,20 @@ class RAGRetriever:
         return retrieved_docs
 
     def rerank_documents(self, query, retrieved_documents):
+        """Rerank retrieved documents using a cross-encoder model.
+
+        Args:
+            query (str): The original query used for retrieval.
+            retrieved_documents (list): List of documents retrieved by the initial search.
+
+        Returns:
+            list: A reordered list of documents based on the cross-encoder's relevance scores.
+
+        Note:
+            This method uses a cross-encoder model to compute more accurate relevance scores
+            between the query and each retrieved document, then reorders the documents based
+            on these scores.
+        """
         pairs = [[query, doc["content"]] for doc in retrieved_documents]
         similarity_scores = cross_encoder.predict(pairs)
         sim_scores_argsort = np.argsort(similarity_scores)[::-1]
@@ -73,17 +100,25 @@ class RAGRetriever:
         reordered_docs = original_array[sim_scores_argsort]
         return reordered_docs
 
-    def retrieve_with_context_overlap(self, query: str, num_neighbors: int = 1, chunk_size: int = 200,
+    def retrieve_with_context_overlap(self, query: str, num_neighbors: int = 1,
                                       chunk_overlap: int = 20) -> List[str]:
-        """
-        Retrieve chunks based on a query, then fetch neighboring chunks and concatenate them, 
-        accounting for overlap and correct indexing.
+        """Retrieves chunks based on a query and concatenates them with neighboring chunks.
 
-        :param query: The query to search for relevant chunks.
-        :param num_neighbors: The number of chunks to retrieve before and after each relevant chunk.
-        :param chunk_size: The size of each chunk when originally split.
-        :param chunk_overlap: The overlap between chunks when originally split.
-        :return: List of concatenated chunk sequences, each centered on a relevant chunk.
+        This function performs a search for relevant chunks based on the input query,
+        then fetches neighboring chunks for each relevant chunk. It concatenates these
+        chunks, accounting for overlap and correct indexing, to provide more context
+        around each relevant chunk.
+
+        Args:
+            query (str): The query to search for relevant chunks.
+            num_neighbors (int, optional): The number of chunks to retrieve before and
+                after each relevant chunk. Defaults to 1.
+            chunk_overlap (int, optional): The overlap between chunks when originally
+                split. Defaults to 20.
+
+        Returns:
+            List[str]: A list of concatenated chunk sequences, each centered on a
+            relevant chunk.
         """
         query_vector = self.get_embedding(query)
 
@@ -127,13 +162,17 @@ class RAGRetriever:
         return result_sequences
 
     def get_chunk_by_index(self, index: int):
-        """
-        Retrieve a chunk from Qdrant by its index.
+        """Retrieve a chunk from Qdrant by its index.
 
-        :param index: The index of the chunk to retrieve.
-        :return: The chunk data including its payload, or None if not found.
+        Args:
+            index (int): The index of the chunk to retrieve.
+
+        Returns:
+            object or None: The chunk data including its payload if found, or None if not found.
+
+        Note:
+            This method performs a point lookup in the Qdrant collection using the provided index.
         """
-        # Search for the chunk with the specific index
         search_result = self.qdrant_client.retrieve(
             collection_name=self.collection_name,
             ids=[index]
