@@ -1,0 +1,4 @@
+fileignoreconfig:
+- filename: poetry.lock
+  checksum: e095c36c0d678512d54bf616944e0d1ba2f118282464df7dfeda7d42512b52ec
+version: ""
