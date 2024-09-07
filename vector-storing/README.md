@@ -65,7 +65,7 @@ the [Qdrant Quantization Guide](https://qdrant.tech/documentation/guides/quantiz
 ```python
 qdrant_handler = QdrantHandler(
     qdrant_url="http://localhost:6333",
-    collection_name="startups",
+    collection_name="fake_collection",
     kafka_bootstrap_servers=["localhost:9093"],
     kafka_topic="output-spark-topic",
     quantization_type="scalar"  # Choose from 'scalar', 'binary', 'product'

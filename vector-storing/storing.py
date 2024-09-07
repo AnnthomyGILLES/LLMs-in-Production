@@ -81,7 +81,7 @@ def main():
 
     qdrant_handler = QdrantHandler(
         qdrant_url="http://qdrant:6333",
-        collection_name="startups",
+        collection_name="fake_collection",
         kafka_bootstrap_servers=["redpanda:29092"],
         kafka_topic="output-spark-topic",
         quantization_type="scalar",

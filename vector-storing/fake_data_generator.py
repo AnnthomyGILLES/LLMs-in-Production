@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     qdrant_handler = QdrantHandler(
         qdrant_url="http://localhost:6333",
-        collection_name="startups",
+        collection_name="fake_collection",
         kafka_bootstrap_servers=["localhost:9093"],
         kafka_topic="spark_to_qdrant",
         quantization_type="scalar",
