@@ -17,7 +17,6 @@ class QdrantHandler:
         quantization_type=None,
         encoder_model="all-MiniLM-L6-v2",
     ):
-        # Qdrant and Kafka setup
         self.client = QdrantClient(qdrant_url)
         self.collection_name = collection_name
         self.encoder = SentenceTransformer(encoder_model, device="cpu")
