@@ -9,11 +9,19 @@ from common.kafka_utils.kafka_consumer import KafkaConsumerWrapper
 
 class QdrantHandler:
     def __init__(
-        self, qdrant_url, collection_name, encoder, quantization_type="scalar"
+        self,
+        qdrant_url,
+        collection_name,
+        kafka_bootstrap_servers,
+        kafka_topic,
+        quantization_type=None,
+        encoder_model="all-MiniLM-L6-v2",
     ):
+        # Qdrant and Kafka setup
         self.client = QdrantClient(qdrant_url)
         self.collection_name = collection_name
-        self.encoder = encoder
+        self.encoder = SentenceTransformer(encoder_model, device="cpu")
+        self.consumer = KafkaConsumerWrapper(kafka_bootstrap_servers, kafka_topic)
         self.quantization_type = quantization_type
 
     def ensure_collection_exists(self):
@@ -57,30 +65,14 @@ class QdrantHandler:
         self.client.upsert(collection_name=self.collection_name, points=[point])
         logger.info(f"Successfully inserted point with ID: {data['id']}")
 
-
-class KafkaQdrantProcessor:
-    def __init__(
-        self,
-        bootstrap_servers,
-        kafka_topic,
-        qdrant_url,
-        collection_name,
-        quantization_type=None,
-    ):
-        self.consumer = KafkaConsumerWrapper(bootstrap_servers, kafka_topic)
-        self.encoder = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
-        self.qdrant_handler = QdrantHandler(
-            qdrant_url, collection_name, self.encoder, quantization_type
-        )
-
     def process_messages(self):
-        self.qdrant_handler.ensure_collection_exists()
+        self.ensure_collection_exists()
         logger.info("Starting to process messages from Kafka")
         for message in self.consumer.consumer:
             try:
                 data = message.value
                 logger.debug(f"Received message: {data}")
-                self.qdrant_handler.insert_point(data)
+                self.insert_point(data)
             except Exception as e:
                 logger.error(f"Failed to process message with error: {e}")
 
@@ -88,14 +80,14 @@ class KafkaQdrantProcessor:
 def main():
     logger.info("Starting process to consume from Kafka and insert into Qdrant")
 
-    processor = KafkaQdrantProcessor(
-        bootstrap_servers=["redpanda:29092"],
-        kafka_topic="output-spark-topic",
+    qdrant_handler = QdrantHandler(
         qdrant_url="http://qdrant:6333",
         collection_name="startups",
-        quantization_type="scalar",  # Choose from 'scalar', 'binary', 'product', or None
+        kafka_bootstrap_servers=["redpanda:29092"],
+        kafka_topic="output-spark-topic",
+        quantization_type="scalar",
     )
-    processor.process_messages()
+    qdrant_handler.process_messages()
 
     logger.info("Process completed")
 
