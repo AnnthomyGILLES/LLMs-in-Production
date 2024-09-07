@@ -1,25 +1,46 @@
 import json
+
 from loguru import logger
 from qdrant_client import models, QdrantClient
 from sentence_transformers import SentenceTransformer
+
 from common.kafka_utils.kafka_consumer import KafkaConsumerWrapper
 
 
 class QdrantHandler:
-    def __init__(self, qdrant_url, collection_name, encoder):
+    def __init__(
+        self, qdrant_url, collection_name, encoder, quantization_type="scalar"
+    ):
         self.client = QdrantClient(qdrant_url)
         self.collection_name = collection_name
         self.encoder = encoder
+        self.quantization_type = quantization_type
 
     def ensure_collection_exists(self):
         if not self.client.collection_exists(collection_name=self.collection_name):
             logger.info(f"Creating collection '{self.collection_name}' in Qdrant")
+
+            quantization_config = None
+            if self.quantization_type == "scalar":
+                quantization_config = models.ScalarQuantization(
+                    scalar=models.ScalarQuantizationConfig(type="int8")
+                )
+            elif self.quantization_type == "binary":
+                quantization_config = models.BinaryQuantization(
+                    binary=models.BinaryQuantizationConfig(encode_length=8)
+                )
+            elif self.quantization_type == "product":
+                quantization_config = models.ProductQuantization(
+                    product=models.ProductQuantizationConfig(num_subvectors=16)
+                )
+
             self.client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config={
                     "default": models.VectorParams(
                         size=self.encoder.get_sentence_embedding_dimension(),
                         distance=models.Distance.COSINE,
+                        quantization_config=quantization_config,
                     )
                 },
             )
@@ -38,10 +59,19 @@ class QdrantHandler:
 
 
 class KafkaQdrantProcessor:
-    def __init__(self, bootstrap_servers, kafka_topic, qdrant_url, collection_name):
+    def __init__(
+        self,
+        bootstrap_servers,
+        kafka_topic,
+        qdrant_url,
+        collection_name,
+        quantization_type=None,
+    ):
         self.consumer = KafkaConsumerWrapper(bootstrap_servers, kafka_topic)
         self.encoder = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
-        self.qdrant_handler = QdrantHandler(qdrant_url, collection_name, self.encoder)
+        self.qdrant_handler = QdrantHandler(
+            qdrant_url, collection_name, self.encoder, quantization_type
+        )
 
     def process_messages(self):
         self.qdrant_handler.ensure_collection_exists()
@@ -63,6 +93,7 @@ def main():
         kafka_topic="output-spark-topic",
         qdrant_url="http://qdrant:6333",
         collection_name="startups",
+        quantization_type="scalar",  # Choose from 'scalar', 'binary', 'product', or None
     )
     processor.process_messages()
 
