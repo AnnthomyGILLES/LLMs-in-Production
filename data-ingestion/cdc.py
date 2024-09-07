@@ -67,7 +67,7 @@ if __name__ == "__main__":
     mongo_db = "llmtoprod_db"
     mongo_collection = "articles"
     kafka_bootstrap_servers = ["localhost:9093"]
-    kafka_topic = "mongodb_cdc"
+    kafka_topic = "mongodb_to_cdc"
 
     mongo_writer = MongoDBWriter(mongo_uri, mongo_db, mongo_collection)
     kafka_producer = KafkaProducerWrapper(kafka_bootstrap_servers, kafka_topic)
