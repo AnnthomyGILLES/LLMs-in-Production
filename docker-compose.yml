@@ -49,22 +49,24 @@ services:
       - qdrant
 
 
-  #  mongodb:
-  #    image: mongo:latest
-  #    command: [ "--replSet", "rs0", "--bind_ip_all", "--port", "27017" ]
-  #    ports:
-  #      - 27017:27017
-  #    extra_hosts:
-  #      - "host.docker.internal:172.20.0.1"
-  #    healthcheck:
-  #      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'host.docker.internal:27017'}]}) }" | mongosh --port 27017 --quiet
-  #      interval: 5s
-  #      timeout: 30s
-  #      retries: 30
-  #    volumes:
-  #      - mongodb_data:/data/db
-  #    networks:
-  #      - kafka_utils-network
+  mongodb:
+    image: mongo:latest
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - 27017:27017
+    extra_hosts:
+      - "host.docker.internal:172.20.0.1"
+    healthcheck:
+      test: echo "rs.status().ok" | mongosh --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ./init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh
+      - mongodb_data:/data/db
+    networks:
+      - kafka-network
+
 
 
   #  data-ingestion:
@@ -150,7 +152,7 @@ services:
 configs:
   qdrant_config:
     content: |
-      log_level: INFO      
+      log_level: INFO
 
 volumes:
   redpanda-data:
