@@ -1,69 +1,82 @@
-import json
-import logging
-
-from bson import json_util
+from loguru import logger
 from pymongo.errors import PyMongoError
 
 from mongodb_writer import MongoDBWriter
+from common.kafka_utils.kafka_producer import KafkaProducerWrapper
 
 
-class ChangeDataCapture:
-    def __init__(self, mongo_client, kafka_producer):
-        self.mongo_client = mongo_client
+class DebeziumMongoDBCDC:
+    def __init__(self, mongo_writer, kafka_producer):
+        self.mongo_writer = mongo_writer
         self.kafka_producer = kafka_producer
-        self.kafka_topic = kafka_producer.topic
-        logging.info(f"CDC will publish changes to Kafka topic: {self.kafka_topic}")
+        logger.info(
+            f"MongoDB CDC initialized. Database: {mongo_writer.db.name}, Collection: {mongo_writer.collection.name}"
+        )
+        logger.info(f"Kafka producer initialized. Topic: {kafka_producer.topic}")
 
     def start_watching(self):
-        logging.info("Starting to watch for changes...")
+        logger.info("Starting to watch for changes...")
         try:
-            with self.mongo_client.collection.watch() as stream:
+            with self.mongo_writer.collection.watch() as stream:
                 for change in stream:
                     self.process_change(change)
         except PyMongoError as e:
-            logging.error(f"Error watching MongoDB changes: {str(e)}")
+            logger.error(f"Error watching MongoDB changes: {str(e)}")
 
     def process_change(self, change):
-        operation = change['operationType']
-        if operation in ['insert', 'update', 'replace', 'delete']:
-            data_type = change["ns"]["coll"]
-            entry_id = str(change["fullDocument"]["_id"])
-            change["fullDocument"].pop("_id")
-            change["fullDocument"]["type"] = data_type
-            change["fullDocument"]["entry_id"] = entry_id
-            full_document = change.get('fullDocument')
-            data = json.dumps(full_document, default=json_util.default)
-            logging.info(f"Change detected and serialized: {data}")
-            self.send_to_kafka(data)
-            logging.info(f"Processed {operation} operation for document: {entry_id}")
+        operation = change["operationType"]
+        if operation in ["insert", "update", "replace", "delete"]:
+            document = change.get("fullDocument", {})
+            document_id = str(document.get("_id", ""))
 
-    def send_to_kafka(self, change_data):
-        success = self.kafka_producer.send_message(change_data)
+            debezium_message = {
+                "before": None,
+                "after": document if operation != "delete" else None,
+                "source": {
+                    "version": "1.0",
+                    "connector": "mongodb",
+                    "name": "mongodb1",
+                    "ts_ms": change["clusterTime"].time * 1000,
+                    "snapshot": "false",
+                    "db": change["ns"]["db"],
+                    "collection": change["ns"]["coll"],
+                    "ord": change["documentKey"]["_id"],
+                },
+                "op": operation[0].upper(),
+                "ts_ms": int(change["clusterTime"].time * 1000),
+            }
+
+            self.send_to_kafka(debezium_message)
+            logger.info(f"Processed {operation} operation for document: {document_id}")
+
+    def send_to_kafka(self, message):
+        success = self.kafka_producer.send_message(message)
         if success:
-            logging.info(f"Sent change data to Kafka topic: {self.kafka_topic}")
+            logger.info(f"Sent change data to Kafka topic: {self.kafka_producer.topic}")
         else:
-            logging.error("Failed to send change data to Kafka")
+            logger.error("Failed to send change data to Kafka")
 
     def close(self):
-        self.mongo_client.close()
+        self.mongo_writer.close()
         self.kafka_producer.close()
-        logging.info("CDC connections closed.")
+        logger.info("CDC connections closed.")
 
 
 if __name__ == "__main__":
-    from common.kafka_utils.kafka_producer import KafkaProducerWrapper
-
-    bootstrap_servers = ['localhost:9093']
-    kafka_topic = 'outgoing-data'
-    mongo_uri = "mongodb://localhost:27017"
+    mongo_uri = "mongodb://localhost:27017/?replicaSet=rs0"
     mongo_db = "llmtoprod_db"
-    mongo_collection = "kafka_messages"
-    mongo_client = MongoDBWriter(mongo_uri, mongo_db, mongo_collection)
-    kafka_producer = KafkaProducerWrapper(bootstrap_servers, kafka_topic)
-    cdc = ChangeDataCapture(mongo_client, kafka_producer)
+    mongo_collection = "articles"
+    kafka_bootstrap_servers = ["localhost:9093"]
+    kafka_topic = "mongodb_cdc"
+
+    mongo_writer = MongoDBWriter(mongo_uri, mongo_db, mongo_collection)
+    kafka_producer = KafkaProducerWrapper(kafka_bootstrap_servers, kafka_topic)
+
+    cdc = DebeziumMongoDBCDC(mongo_writer, kafka_producer)
+
     try:
         cdc.start_watching()
     except KeyboardInterrupt:
-        logging.info("CDC stopped by user.")
+        logger.info("CDC stopped by user.")
     finally:
         cdc.close()
