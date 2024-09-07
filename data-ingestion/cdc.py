@@ -5,7 +5,7 @@ from mongodb_writer import MongoDBWriter
 from common.kafka_utils.kafka_producer import KafkaProducerWrapper
 
 
-class DebeziumMongoDBCDC:
+class ChangeDataCapture:
     def __init__(self, mongo_writer, kafka_producer):
         self.mongo_writer = mongo_writer
         self.kafka_producer = kafka_producer
@@ -29,7 +29,7 @@ class DebeziumMongoDBCDC:
             document = change.get("fullDocument", {})
             document_id = str(document.get("_id", ""))
 
-            debezium_message = {
+            message = {
                 "before": None,
                 "after": document if operation != "delete" else None,
                 "source": {
@@ -46,7 +46,7 @@ class DebeziumMongoDBCDC:
                 "ts_ms": int(change["clusterTime"].time * 1000),
             }
 
-            self.send_to_kafka(debezium_message)
+            self.send_to_kafka(message)
             logger.info(f"Processed {operation} operation for document: {document_id}")
 
     def send_to_kafka(self, message):
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     mongo_writer = MongoDBWriter(mongo_uri, mongo_db, mongo_collection)
     kafka_producer = KafkaProducerWrapper(kafka_bootstrap_servers, kafka_topic)
 
-    cdc = DebeziumMongoDBCDC(mongo_writer, kafka_producer)
+    cdc = ChangeDataCapture(mongo_writer, kafka_producer)
 
     try:
         cdc.start_watching()
