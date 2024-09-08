@@ -41,13 +41,14 @@ class QdrantHandler:
                     product=models.ProductQuantizationConfig(num_subvectors=16)
                 )
 
+            # Create the collection with or without quantization_config
             self.client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config={
                     "default": models.VectorParams(
                         size=self.encoder.get_sentence_embedding_dimension(),
                         distance=models.Distance.COSINE,
-                        quantization_config=quantization_config,
+                        quantization_config=quantization_config,  # Can be None
                     )
                 },
             )
@@ -84,7 +85,7 @@ def main():
         collection_name="fake_collection",
         kafka_bootstrap_servers=["redpanda:29092"],
         kafka_topic="output-spark-topic",
-        quantization_type="scalar",
+        quantization_type=None,
     )
     qdrant_handler.process_messages()
 
