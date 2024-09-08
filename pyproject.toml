@@ -6,7 +6,7 @@ authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.13"
 selenium = "^4.23.1"
 beautifulsoup4 = "^4.12.3"
 aws-lambda-powertools = "^2.42.0"
@@ -37,6 +37,7 @@ pandas = "^2.2.2"
 ragas = "^0.1.14"
 datasets = "^2.21.0"
 pre-commit = "^3.8.0"
+fastembed = "^0.3.6"
 
 
 [tool.poetry.group.dev.dependencies]
