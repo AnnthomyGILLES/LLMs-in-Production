@@ -1,3 +1,4 @@
+import uuid
 from loguru import logger
 from qdrant_client import models, QdrantClient
 from sentence_transformers import SentenceTransformer
@@ -58,7 +59,7 @@ class QdrantHandler:
         embedding = self.encoder.encode(embedding_text).tolist()
 
         point = models.PointStruct(
-            id=data["name"],  # Use name as a unique ID
+            id=str(uuid.uuid4()),
             vector={"default": embedding},
             payload={
                 "name": data["name"],
@@ -75,29 +76,34 @@ class QdrantHandler:
     def process_messages(self):
         self.ensure_collection_exists()
         logger.info("Starting to process messages from Kafka")
-        for message in self.consumer.consumer:
+        for message in self.consumer.consume():
             try:
-                data = message.value
+                data = message["value"]
                 logger.debug(f"Received message: {data}")
                 self.insert_point(data)
             except Exception as e:
                 logger.error(f"Failed to process message with error: {e}")
 
-
-def main():
-    logger.info("Starting process to consume from Kafka and insert into Qdrant")
-
-    qdrant_handler = QdrantHandler(
-        qdrant_url="http://qdrant:6333",
-        collection_name="startups",
-        kafka_bootstrap_servers=["redpanda:29092"],
-        kafka_topic="output-spark-topic",
-        quantization_type="scalar",  # You can choose quantization_type or set to None
-    )
-    qdrant_handler.process_messages()
-
-    logger.info("Process completed")
+    def close(self):
+        self.consumer.close()
+        logger.info("Kafka consumer closed.")
 
 
 if __name__ == "__main__":
-    main()
+    logger.info("Starting process to consume from Kafka and insert into Qdrant")
+
+    qdrant_handler = QdrantHandler(
+        qdrant_url="http://localhost:6333",
+        collection_name="startups",
+        kafka_bootstrap_servers=["localhost:9093"],
+        kafka_topic="qdrant_startups",
+        quantization_type=None,
+    )
+    try:
+        qdrant_handler.process_messages()
+    except KeyboardInterrupt:
+        logger.info("Received interrupt, closing consumer...")
+    finally:
+        qdrant_handler.close()
+
+    logger.info("Process completed")

@@ -1,54 +1,55 @@
-import logging
+from typing import Any, Dict, Optional
 
 from kafka import KafkaConsumer
+from loguru import logger
 
 from common.kafka_utils.serializers import deserialize_message
 
 
 class KafkaConsumerWrapper:
-    def __init__(self, bootstrap_servers=None, topic='incoming-data', group_id='my-group'):
-        if bootstrap_servers is None:
-            bootstrap_servers = ['kafa:9092']
+    """A Kafka consumer for receiving messages from a specified topic with JSON deserialization capability."""
+
+    def __init__(self, bootstrap_servers: list, topic: str, **kwargs):
+        self.topic = topic
         self.consumer = KafkaConsumer(
             topic,
             bootstrap_servers=bootstrap_servers,
-            auto_offset_reset='earliest',
+            auto_offset_reset="earliest",
             enable_auto_commit=True,
-            group_id=group_id,
-            value_deserializer=lambda x: deserialize_message(x)
+            value_deserializer=lambda x: deserialize_message(x),
+            **kwargs,
         )
-        logging.info(f"Kafka consumer initialized. Topic: {topic}")
+        logger.info(f"Kafka consumer initialized for topic: {self.topic}")
 
-    def consume(self):
-        logging.info("Starting to consume messages...")
+    def consume(self) -> Optional[Dict[str, Any]]:
         for message in self.consumer:
-            logging.info(f"Received message: {message.value}")
-            logging.info(f"Partition: {message.partition}")
-            logging.info(f"Offset: {message.offset}")
-
             document = {
-                'value': message.value,
-                'topic': message.topic,
-                'partition': message.partition,
-                'offset': message.offset,
-                'timestamp': message.timestamp
+                "value": message.value,
+                "topic": message.topic,
+                "partition": message.partition,
+                "offset": message.offset,
+                "timestamp": message.timestamp,
             }
-
+            logger.info(f"Received message: {document}")
             yield document
 
     def close(self):
+        """Close the Kafka consumer."""
         self.consumer.close()
-        logging.info("Kafka consumer closed.")
+        logger.info("Kafka consumer closed")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    bootstrap_servers = ['localhost:9093']
-    kafka_topic = 'my-topic'
-
-    logging.info(f"Kafka producer initialized. Servers: {bootstrap_servers}")
-
-    consumer = KafkaConsumerWrapper(bootstrap_servers, kafka_topic)
-    for msg in consumer.consume():
-        print(msg)
-    consumer.close()
+    with KafkaConsumerWrapper(["localhost:9093"], "qdrant_startups") as consumer:
+        while True:
+            message = consumer.consume()
+            if message:
+                print(message)
+            else:
+                break  # Exit if no more messages (for demonstration purposes)
