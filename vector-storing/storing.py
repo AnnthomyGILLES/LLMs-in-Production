@@ -1,5 +1,3 @@
-import json
-
 from loguru import logger
 from qdrant_client import models, QdrantClient
 from sentence_transformers import SentenceTransformer
@@ -41,14 +39,13 @@ class QdrantHandler:
                     product=models.ProductQuantizationConfig(num_subvectors=16)
                 )
 
-            # Create the collection with or without quantization_config
             self.client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config={
                     "default": models.VectorParams(
                         size=self.encoder.get_sentence_embedding_dimension(),
                         distance=models.Distance.COSINE,
-                        quantization_config=quantization_config,  # Can be None
+                        quantization_config=quantization_config,
                     )
                 },
             )
@@ -57,13 +54,23 @@ class QdrantHandler:
             logger.info(f"Collection '{self.collection_name}' already exists")
 
     def insert_point(self, data):
+        embedding_text = data["description"]
+        embedding = self.encoder.encode(embedding_text).tolist()
+
         point = models.PointStruct(
-            id=data["id"],
-            vector={"default": data["embedding"]},
-            payload={"metadata": json.loads(data["metadata"]), "post": data["post"]},
+            id=data["name"],  # Use name as a unique ID
+            vector={"default": embedding},
+            payload={
+                "name": data["name"],
+                "images": data["images"],
+                "alt": data["alt"],
+                "description": data["description"],
+                "link": data["link"],
+                "city": data["city"],
+            },
         )
         self.client.upsert(collection_name=self.collection_name, points=[point])
-        logger.info(f"Successfully inserted point with ID: {data['id']}")
+        logger.info(f"Successfully inserted/upserted point with name: {data['name']}")
 
     def process_messages(self):
         self.ensure_collection_exists()
@@ -82,10 +89,10 @@ def main():
 
     qdrant_handler = QdrantHandler(
         qdrant_url="http://qdrant:6333",
-        collection_name="fake_collection",
+        collection_name="startups",
         kafka_bootstrap_servers=["redpanda:29092"],
         kafka_topic="output-spark-topic",
-        quantization_type=None,
+        quantization_type="scalar",  # You can choose quantization_type or set to None
     )
     qdrant_handler.process_messages()
 
