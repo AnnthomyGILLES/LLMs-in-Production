@@ -4,7 +4,22 @@ from qdrant_client import QdrantClient, models
 
 
 class QdrantHybridQuery:
+    """A class for performing hybrid and multi-stage queries using Qdrant.
+
+    This class provides methods for various types of advanced queries in Qdrant,
+    including hybrid search, multi-stage search, querying by ID, re-ranking with
+    payload, and grouped search.
+
+    Attributes:
+        client (QdrantClient): An instance of the Qdrant client.
+    """
+
     def __init__(self, url: str = "http://localhost:6333"):
+        """Initialize the QdrantHybridQuery instance.
+
+        Args:
+            url (str): The URL of the Qdrant server. Defaults to "http://localhost:6333".
+        """
         self.client = QdrantClient(url=url)
 
     def hybrid_search(
@@ -15,15 +30,17 @@ class QdrantHybridQuery:
         fusion_method: str = "rrf",
         limit: int = 10,
     ) -> List[Dict[str, Any]]:
-        """
-        Perform a hybrid search using both dense and sparse vectors.
+        """Perform a hybrid search using both dense and sparse vectors.
 
-        :param collection_name: Name of the Qdrant collection
-        :param dense_vector: Dense vector for querying
-        :param sparse_vector: Sparse vector for querying (dictionary of {index: value})
-        :param fusion_method: Fusion method ('rrf' or 'dbsf')
-        :param limit: Number of results to return
-        :return: List of search results
+        Args:
+            collection_name (str): Name of the Qdrant collection.
+            dense_vector (List[float]): Dense vector for querying.
+            sparse_vector (Dict[int, float]): Sparse vector for querying (dictionary of {index: value}).
+            fusion_method (str): Fusion method ('rrf' or 'dbsf'). Defaults to 'rrf'.
+            limit (int): Number of results to return. Defaults to 10.
+
+        Returns:
+            List[Dict[str, Any]]: List of search results.
         """
         prefetch = [
             models.Prefetch(
@@ -60,15 +77,17 @@ class QdrantHybridQuery:
         initial_limit: int = 1000,
         final_limit: int = 10,
     ) -> List[Dict[str, Any]]:
-        """
-        Perform a multi-stage search using different vector representations.
+        """Perform a multi-stage search using different vector representations.
 
-        :param collection_name: Name of the Qdrant collection
-        :param initial_vector: Vector for initial search (e.g., MRL byte vector)
-        :param refine_vector: Vector for refinement (e.g., full vector)
-        :param initial_limit: Number of candidates to fetch in the first stage
-        :param final_limit: Number of results to return after refinement
-        :return: List of search results
+        Args:
+            collection_name (str): Name of the Qdrant collection.
+            initial_vector (List[float]): Vector for initial search (e.g., MRL byte vector).
+            refine_vector (List[float]): Vector for refinement (e.g., full vector).
+            initial_limit (int): Number of candidates to fetch in the first stage. Defaults to 1000.
+            final_limit (int): Number of results to return after refinement. Defaults to 10.
+
+        Returns:
+            List[Dict[str, Any]]: List of search results.
         """
         results = self.client.query_points(
             collection_name=collection_name,
@@ -92,15 +111,17 @@ class QdrantHybridQuery:
         lookup_from: Dict[str, str] = None,
         limit: int = 10,
     ) -> List[Dict[str, Any]]:
-        """
-        Query points using a vector from an existing point.
+        """Query points using a vector from an existing point.
 
-        :param collection_name: Name of the Qdrant collection
-        :param point_id: ID of the point to use as query
-        :param vector_name: Name of the vector to use (if not default)
-        :param lookup_from: Dictionary specifying another collection and vector name
-        :param limit: Number of results to return
-        :return: List of search results
+        Args:
+            collection_name (str): Name of the Qdrant collection.
+            point_id (str): ID of the point to use as query.
+            vector_name (str, optional): Name of the vector to use (if not default).
+            lookup_from (Dict[str, str], optional): Dictionary specifying another collection and vector name.
+            limit (int): Number of results to return. Defaults to 10.
+
+        Returns:
+            List[Dict[str, Any]]: List of search results.
         """
         query_params = {
             "collection_name": collection_name,
@@ -126,15 +147,17 @@ class QdrantHybridQuery:
         order_by: str,
         limit: int = 10,
     ) -> List[Dict[str, Any]]:
-        """
-        Rerank search results using payload values.
+        """Rerank search results using payload values.
 
-        :param collection_name: Name of the Qdrant collection
-        :param query_vector: Vector for initial search
-        :param filters: List of filters to apply
-        :param order_by: Field to order results by
-        :param limit: Number of results to return
-        :return: List of search results
+        Args:
+            collection_name (str): Name of the Qdrant collection.
+            query_vector (List[float]): Vector for initial search.
+            filters (List[Dict[str, Any]]): List of filters to apply.
+            order_by (str): Field to order results by.
+            limit (int): Number of results to return. Defaults to 10.
+
+        Returns:
+            List[Dict[str, Any]]: List of search results.
         """
         prefetch = [
             models.Prefetch(
@@ -163,15 +186,17 @@ class QdrantHybridQuery:
         limit: int = 4,
         group_size: int = 2,
     ) -> List[Dict[str, Any]]:
-        """
-        Perform a grouped search query.
+        """Perform a grouped search query.
 
-        :param collection_name: Name of the Qdrant collection
-        :param query_vector: Vector for search
-        :param group_by: Field to group results by
-        :param limit: Number of groups to return
-        :param group_size: Number of results per group
-        :return: List of grouped search results
+        Args:
+            collection_name (str): Name of the Qdrant collection.
+            query_vector (List[float]): Vector for search.
+            group_by (str): Field to group results by.
+            limit (int): Number of groups to return. Defaults to 4.
+            group_size (int): Number of results per group. Defaults to 2.
+
+        Returns:
+            List[Dict[str, Any]]: List of grouped search results.
         """
         results = self.client.query_points_groups(
             collection_name=collection_name,
