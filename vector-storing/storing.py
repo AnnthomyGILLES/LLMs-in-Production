@@ -1,12 +1,16 @@
 import uuid
+
 from loguru import logger
 from qdrant_client import models, QdrantClient
+from qdrant_client.http.exceptions import UnexpectedResponse
 from sentence_transformers import SentenceTransformer
 
 from common.kafka_utils.kafka_consumer import KafkaConsumerWrapper
 
 
 class QdrantHandler:
+    _instance = None
+
     def __init__(
         self,
         qdrant_url,
@@ -16,14 +20,19 @@ class QdrantHandler:
         quantization_type=None,
         encoder_model="all-MiniLM-L6-v2",
     ):
-        self.client = QdrantClient(qdrant_url)
+        if self._instance is None:
+            try:
+                self._instance = QdrantClient(qdrant_url)
+            except UnexpectedResponse:
+                logger.exception("Couldn't connect to the database.")
+                raise
         self.collection_name = collection_name
         self.encoder = SentenceTransformer(encoder_model, device="cpu")
         self.consumer = KafkaConsumerWrapper(kafka_bootstrap_servers, kafka_topic)
         self.quantization_type = quantization_type
 
     def ensure_collection_exists(self):
-        if not self.client.collection_exists(collection_name=self.collection_name):
+        if not self._instance.collection_exists(collection_name=self.collection_name):
             logger.info(f"Creating collection '{self.collection_name}' in Qdrant")
 
             quantization_config = None
@@ -40,7 +49,7 @@ class QdrantHandler:
                     product=models.ProductQuantizationConfig(num_subvectors=16)
                 )
 
-            self.client.create_collection(
+            self._instance.create_collection(
                 collection_name=self.collection_name,
                 vectors_config={
                     "default": models.VectorParams(
@@ -70,7 +79,7 @@ class QdrantHandler:
                 "city": data["city"],
             },
         )
-        self.client.upsert(collection_name=self.collection_name, points=[point])
+        self._instance.upsert(collection_name=self.collection_name, points=[point])
         logger.info(f"Successfully inserted/upserted point with name: {data['name']}")
 
     def process_messages(self):
@@ -86,7 +95,9 @@ class QdrantHandler:
 
     def close(self):
         self.consumer.close()
-        logger.info("Kafka consumer closed.")
+        if self._instance:
+            self._instance.close()
+        logger.info("Kafka consumer and Qdrant client connections closed.")
 
 
 if __name__ == "__main__":
