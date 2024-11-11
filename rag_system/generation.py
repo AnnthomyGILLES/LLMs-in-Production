@@ -87,7 +87,9 @@ class ResearchAssistant:
         """
         joint_query = self.augment_query(original_query)
         retrieved_documents = self.store.retrieve(joint_query)
-        reordered_documents = self.rerank_documents(joint_query, retrieved_documents)
+        reordered_documents = self.store.rerank_documents(
+            joint_query, retrieved_documents
+        )
         output = self.generate_response(original_query, reordered_documents)
         return word_wrap(output)
 
