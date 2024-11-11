@@ -31,9 +31,7 @@ class ResearchAssistant:
         """
         self.model = config["models"]["retrieval"]
         self.store = RAGRetriever(
-            qdrant_host="localhost",
-            qdrant_port=6333,
-            collection_name="wikipedia"
+            qdrant_host="localhost", qdrant_port=6333, collection_name="wikipedia"
         )
 
     def augment_query(self, query):
@@ -64,7 +62,7 @@ class ResearchAssistant:
             {
                 "role": "system",
                 "content": "You are a helpful expert assistant in artificial intelligence. Your users are asking questions about information contained in a documentation."
-                           "You will be shown the user's question, and the relevant information from documentation. Answer the user's question using only this information.",
+                "You will be shown the user's question, and the relevant information from documentation. Answer the user's question using only this information.",
             },
             {
                 "role": "user",

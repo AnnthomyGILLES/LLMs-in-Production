@@ -25,7 +25,7 @@ services:
 
   preprocessing:
     build:
-      context: ./preprocessing
+      context: data_processing
       dockerfile: Dockerfile
     networks:
       - kafka-network
@@ -51,7 +51,7 @@ services:
 
   mongodb:
     image: mongo:latest
-    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    command: [ "--replSet", "rs0", "--bind_ip_all", "--port", "27017" ]
     ports:
       - 27017:27017
     extra_hosts:
@@ -69,9 +69,9 @@ services:
 
 
 
-  #  data-ingestion:
+  #  data_ingestion:
   #    build:
-  #      context: ./data-ingestion
+  #      context: ./data_ingestion
   #      dockerfile: Dockerfile
   #    depends_on:
   #      kafka:

@@ -10,8 +10,13 @@ cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
 class RAGRetriever:
-    def __init__(self, qdrant_host: str, qdrant_port: int, collection_name: str,
-                 embedding_model: str = "all-MiniLM-L6-v2"):
+    def __init__(
+        self,
+        qdrant_host: str,
+        qdrant_port: int,
+        collection_name: str,
+        embedding_model: str = "all-MiniLM-L6-v2",
+    ):
         """Initialize the RAGRetriever with Qdrant connection and embedding model.
 
         Args:
@@ -42,7 +47,9 @@ class RAGRetriever:
         """
         return self.embedding_model.encode(text)
 
-    def retrieve(self, query: str, top_k: int = 5, filter_condition: dict = None) -> list:
+    def retrieve(
+        self, query: str, top_k: int = 5, filter_condition: dict = None
+    ) -> list:
         """Retrieve the most relevant documents for the given query.
 
         Args:
@@ -64,7 +71,7 @@ class RAGRetriever:
         search_params = {
             "collection_name": self.collection_name,
             "query_vector": ("content", query_vector),
-            "limit": top_k
+            "limit": top_k,
         }
 
         if filter_condition:
@@ -74,11 +81,15 @@ class RAGRetriever:
 
         retrieved_docs = []
         for result in results:
-            retrieved_docs.append({
-                "content": result.payload["article"],
-                "metadata": {k: v for k, v in result.payload.items() if k != "article"},
-                "score": result.score
-            })
+            retrieved_docs.append(
+                {
+                    "content": result.payload["article"],
+                    "metadata": {
+                        k: v for k, v in result.payload.items() if k != "article"
+                    },
+                    "score": result.score,
+                }
+            )
 
         return retrieved_docs
 
@@ -104,8 +115,9 @@ class RAGRetriever:
         reordered_docs = original_array[sim_scores_argsort]
         return reordered_docs
 
-    def retrieve_with_context_overlap(self, query: str, num_neighbors: int = 1,
-                                      chunk_overlap: int = 20) -> List[str]:
+    def retrieve_with_context_overlap(
+        self, query: str, num_neighbors: int = 1, chunk_overlap: int = 20
+    ) -> List[str]:
         """Retrieves chunks based on a query and concatenates them with neighboring chunks.
 
         This function performs a search for relevant chunks based on the input query,
@@ -130,7 +142,7 @@ class RAGRetriever:
         search_result = self.qdrant_client.search(
             collection_name=self.collection_name,
             query_vector=("content", query_vector),
-            limit=5  # Adjust this number based on how many relevant chunks you want to consider
+            limit=5,  # Adjust this number based on how many relevant chunks you want to consider
         )
 
         result_sequences = []
@@ -142,7 +154,9 @@ class RAGRetriever:
 
             # Determine the range of chunks to retrieve
             start_index = max(0, current_index - num_neighbors)
-            end_index = current_index + num_neighbors + 1  # +1 because range is exclusive at the end
+            end_index = (
+                current_index + num_neighbors + 1
+            )  # +1 because range is exclusive at the end
 
             # Retrieve all chunks in the range
             neighbor_chunks = []
@@ -178,8 +192,7 @@ class RAGRetriever:
             This method performs a point lookup in the Qdrant collection using the provided index.
         """
         search_result = self.qdrant_client.retrieve(
-            collection_name=self.collection_name,
-            ids=[index]
+            collection_name=self.collection_name, ids=[index]
         )
 
         if search_result:
@@ -187,11 +200,9 @@ class RAGRetriever:
         return None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     retriever = RAGRetriever(
-        qdrant_host="localhost",
-        qdrant_port=6333,
-        collection_name="wikipedia"
+        qdrant_host="localhost", qdrant_port=6333, collection_name="wikipedia"
     )
 
     query = "Europe"

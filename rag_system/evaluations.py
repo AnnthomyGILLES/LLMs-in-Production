@@ -41,13 +41,13 @@ def llm_grader(question, response) -> float:
             {
                 "role": "user",
                 "content": f"[Instruction]\nPlease act as an impartial judge and evaluate the quality of the response "
-                           f"provided by an AI assistant to the user question displayed below. Your evaluation should "
-                           f"consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and "
-                           f"level of detail of the response. Begin your evaluation by providing a short explanation. "
-                           f"Be as objective as possible. After providing your explanation, you must rate the response "
-                           f'on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: '
-                           f'"Rating: [[5]]".\n\n[Question]\n{question}\n\n[The Start of Assistant\'s Answer]'
-                           f"\n{response}\n[The End of Assistant's Answer]",
+                f"provided by an AI assistant to the user question displayed below. Your evaluation should "
+                f"consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and "
+                f"level of detail of the response. Begin your evaluation by providing a short explanation. "
+                f"Be as objective as possible. After providing your explanation, you must rate the response "
+                f'on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: '
+                f'"Rating: [[5]]".\n\n[Question]\n{question}\n\n[The Start of Assistant\'s Answer]'
+                f"\n{response}\n[The End of Assistant's Answer]",
             },
         ],
         temperature=0.0,

@@ -82,7 +82,7 @@ def download_paper(url: str, filepath: Path) -> None:
 
 
 def download_papers_from_arxiv(
-        search_query: str, output_directory: Path, max_results: int
+    search_query: str, output_directory: Path, max_results: int
 ) -> None:
     """
     Downloads a specified number of papers from arXiv based on a given search query.
@@ -159,7 +159,8 @@ def ingest_documents(input_directory: Path) -> List[Dict[str, str]]:
 
     # Log the number of documents
     logger.info(
-        f"{nb_files_processed} files have been processed. {len(langchain_documents)} documents have been created.")
+        f"{nb_files_processed} files have been processed. {len(langchain_documents)} documents have been created."
+    )
 
     return langchain_documents
 

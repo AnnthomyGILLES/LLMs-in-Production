@@ -20,13 +20,15 @@ def consume_and_write(consumer, writer):
 def main():
     logging.basicConfig(level=logging.INFO)
 
-    bootstrap_servers = os.getenv('KAFKA_SERVERS', 'localhost:9093').split(',')
-    kafka_topic = os.getenv('KAFKA_TOPIC', 'incoming-data')
-    mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
-    mongo_db = os.getenv('MONGO_DB', 'llmtoprod_db')
-    mongo_collection = os.getenv('MONGO_COLLECTION', 'kafka_messages')
+    bootstrap_servers = os.getenv("KAFKA_SERVERS", "localhost:9093").split(",")
+    kafka_topic = os.getenv("KAFKA_TOPIC", "incoming-data")
+    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    mongo_db = os.getenv("MONGO_DB", "llmtoprod_db")
+    mongo_collection = os.getenv("MONGO_COLLECTION", "kafka_messages")
 
-    producer = KafkaProducerWrapper(bootstrap_servers=bootstrap_servers, topic=kafka_topic)
+    producer = KafkaProducerWrapper(
+        bootstrap_servers=bootstrap_servers, topic=kafka_topic
+    )
     logging.info(f"Kafka producer initialized. Servers: {bootstrap_servers}")
 
     consumer = KafkaConsumerWrapper(bootstrap_servers, kafka_topic)

@@ -17,7 +17,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Set environment variables
 ENV PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
 ENV SPARK_MASTER_URL=spark://spark:7077
-ENV SPARK_DRIVER_HOST=preprocessing
+ENV SPARK_DRIVER_HOST=data_processing
 ENV SPARK_DRIVER_PORT=7001
 ENV SPARK_DRIVER_BINDADDRESS=0.0.0.0
 ENV SPARK_BLOCKMANAGER_PORT=7002
