@@ -37,13 +37,13 @@ services:
 
   vector-storing:
     build:
-      context: ./vector-storing
+      context: vector_storage
       dockerfile: Dockerfile
     networks:
       - kafka-network
     volumes:
       - ./common:/app/common
-      - ./vector-storing:/app
+      - ./vector_storage:/app
     depends_on:
       - redpanda
       - qdrant
