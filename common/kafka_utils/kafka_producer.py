@@ -60,7 +60,9 @@ class KafkaProducerWrapper:
 
 
 if __name__ == "__main__":
-    input_json = Path().cwd().parent.parent / "data" / "raw" / "startup_demo_sample.jl"
+    input_json = (
+        Path().cwd().parent.parent / "data" / "raw" / "startup_demo_sample.jsonl"
+    )
     with KafkaProducerWrapper(["localhost:9093"], "qdrant_startups") as producer:
         producer.send_json_stream(input_json)
         print("JSON file processed and sent to Kafka")
