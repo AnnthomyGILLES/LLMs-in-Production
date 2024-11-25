@@ -7,34 +7,39 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    git \
+    netcat-traditional \
+    postgresql-client \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python packages
+# Create necessary directories
+RUN mkdir -p /app/dags /app/logs /app/plugins /app/config
+
+# Copy requirements first for better caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY . .
+COPY common /app/common
 
-# Create necessary directories
-RUN mkdir -p /app/dags /app/logs /app/plugins
+# Create a non-root user
+RUN useradd -m -d /app airflow && \
+    chown -R airflow:airflow /app
 
-# Set environment variables
-ENV AIRFLOW_HOME=/app
-ENV PYTHONPATH=/app
+USER airflow
 
-# Initialize Airflow DB and create admin user
-RUN airflow db init && \
-    airflow users create \
-    --username admin \
-    --firstname admin \
-    --lastname admin \
-    --role Admin \
-    --email admin@example.com \
-    --password admin
+# Copy and set permissions for entrypoint script
+COPY --chown=airflow:airflow entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Expose ports
 EXPOSE 8080
 
-# Start Airflow webserver
-CMD ["airflow", "webserver"]
+# Use entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]
