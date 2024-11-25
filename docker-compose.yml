@@ -68,6 +68,73 @@ services:
       - kafka-network
 
 
+  postgres:
+    image: postgres:14.0
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - kafka-network
+
+
+  airflow-webserver:
+    image: apache/airflow:2.7.1
+    platform: linux/amd64
+    user: "${AIRFLOW_UID:-50000}:0"
+    command: bash -c "
+      airflow db init &&
+      airflow users create \
+        --username admin \
+        --firstname admin \
+        --lastname admin \
+        --role Admin \
+        --email admin@example.com \
+        --password admin &&
+      airflow webserver"
+    depends_on:
+      - redpanda
+      - postgres
+    ports:
+      - "8082:8080"
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./stock_market/dags:/opt/airflow/dags
+      - ./stock_market:/opt/airflow/stock_market
+      - ./common:/opt/airflow/common
+      - airflow_data:/opt/airflow
+    networks:
+      - kafka-network
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.1
+    platform: linux/amd64
+    user: "${AIRFLOW_UID:-50000}:0"
+    command: scheduler
+    depends_on:
+      - airflow-webserver
+      - postgres
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./stock_market/dags:/opt/airflow/dags
+      - ./stock_market:/opt/airflow/stock_market
+      - ./common:/opt/airflow/common
+      - airflow_data:/opt/airflow
+    networks:
+      - kafka-network
 
   #  data_ingestion:
   #    build:
@@ -159,6 +226,8 @@ volumes:
   spark-volume:
   qdrant_data:
   mongodb_data:
+  airflow_data:
+  postgres_data:
 
 networks:
   kafka-network:
