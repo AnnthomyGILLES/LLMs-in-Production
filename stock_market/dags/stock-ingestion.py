@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+import os
 
 import yfinance as yf
 from airflow import DAG
@@ -23,8 +24,10 @@ default_args = {
 }
 
 # Kafka configuration
-KAFKA_BOOTSTRAP_SERVERS = ["localhost:9092"]
-KAFKA_TOPIC = "stock_data"
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "redpanda:29092").split(
+    ","
+)
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "stock_data")
 
 # List of stock symbols to track
 STOCK_SYMBOLS = ["AAPL", "GOOGL", "MSFT", "AMZN"]
